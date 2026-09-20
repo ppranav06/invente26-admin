@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ApiError, getEvents, replaceTicketEvent } from "../lib/api";
 import { compatibleEventType } from "../lib/ticket";
 import type { CatalogEvent, TicketEvent, TicketResponse } from "../lib/types";
+import { useAuth } from "../lib/authContext";
 import TicketLookup from "./ticket-lookup";
 import TicketSummary from "./ticket-summary";
 
@@ -15,6 +16,7 @@ function candidateEvents(ticketType: string, current: TicketEvent, events: Catal
 }
 
 export default function ModifyEvents() {
+  const { user } = useAuth();
   const [data, setData] = useState<TicketResponse | null>(null);
   const [catalog, setCatalog] = useState<CatalogEvent[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(true);
@@ -22,6 +24,8 @@ export default function ModifyEvents() {
   const [pending, setPending] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  const canAssign = user?.role === "master_admin" || user?.role === "volunteer";
 
   useEffect(() => {
     let cancelled = false;
@@ -112,7 +116,7 @@ export default function ModifyEvents() {
                         <h2 className="mt-3 font-bold text-slate-950">{event.name}</h2>
                         <p className="mt-1 text-sm text-slate-500">{event.dept_name} · {event.event_type}</p>
                       </div>
-                      {!event.attendance && (
+                      {!event.attendance && canAssign && (
                         <div className="flex min-w-0 flex-col gap-2 sm:flex-row lg:w-[28rem]">
                           <select value={selected} onChange={(change) => setPending((current) => ({ ...current, [event.event_id]: change.target.value }))} disabled={catalogLoading || savingId === event.event_id} className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100">
                             <option value="">{catalogLoading ? "Loading events…" : options.length ? "Choose replacement" : "No compatible events"}</option>
