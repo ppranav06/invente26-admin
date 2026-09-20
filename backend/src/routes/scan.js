@@ -1,29 +1,68 @@
+'use strict';
+
 const express = require('express');
 const { getTicketDetails } = require('../services/ticketService');
 const { markAttendance } = require('../services/attendanceService');
 const { replaceTicketEvent } = require('../services/assignmentService');
 const { asyncHandler, parseUuid } = require('../utils/errors');
+const { authn } = require('../middleware/authn');
+const { authz, assertEventScope } = require('../middleware/authz');
+const { PERMISSIONS } = require('../config/permissions');
 
 function createScanRouter({ db }) {
   const router = express.Router();
 
-  router.get('/scan/:ticketId', asyncHandler(async (req, res) => {
-    const ticketId = parseUuid(req.params.ticketId, 'ticketId');
-    res.json(await getTicketDetails(db, ticketId));
-  }));
+  /**
+   * GET /scan/:ticketId
+   * All authenticated roles may look up a ticket.
+   */
+  router.get(
+    '/scan/:ticketId',
+    authn, authz(PERMISSIONS.SCAN_READ),
+    asyncHandler(async (req, res) => {
+      const ticketId = parseUuid(req.params.ticketId, 'ticketId');
+      res.json(await getTicketDetails(db, ticketId));
+    }),
+  );
 
-  router.post('/scan/:ticketId/attend', asyncHandler(async (req, res) => {
-    const ticketId = parseUuid(req.params.ticketId, 'ticketId');
-    const eventId = parseUuid(req.body?.event_id, 'event_id');
-    res.json(await markAttendance(db, ticketId, eventId));
-  }));
+  /**
+   * POST /scan/:ticketId/attend
+   * Body: { event_id }
+   *
+   * Master admin may attend any event.
+   * Event admin may only attend their own scoped event (assertEventScope).
+   */
+  router.post(
+    '/scan/:ticketId/attend',
+    authn, authz(PERMISSIONS.ATTEND_WRITE),
+    asyncHandler(async (req, res) => {
+      const ticketId = parseUuid(req.params.ticketId, 'ticketId');
+      const eventId  = parseUuid(req.body?.event_id, 'event_id');
 
-  router.post('/scan/:ticketId/assign', asyncHandler(async (req, res) => {
-    const ticketId = parseUuid(req.params.ticketId, 'ticketId');
-    const currentEventId = parseUuid(req.body?.current_event_id, 'current_event_id');
-    const nextEventId = parseUuid(req.body?.event_id, 'event_id');
-    res.json(await replaceTicketEvent(db, ticketId, currentEventId, nextEventId));
-  }));
+      // Scope guard: event_admin can only mark attendance for their own event
+      assertEventScope(req.adminUser, eventId);
+
+      res.json(await markAttendance(db, ticketId, eventId));
+    }),
+  );
+
+  /**
+   * POST /scan/:ticketId/assign
+   * Body: { current_event_id, event_id }
+   *
+   * Master admin: unrestricted.
+   * Volunteer: assignment service already blocks attended events.
+   */
+  router.post(
+    '/scan/:ticketId/assign',
+    authn, authz(PERMISSIONS.ASSIGN_WRITE),
+    asyncHandler(async (req, res) => {
+      const ticketId      = parseUuid(req.params.ticketId, 'ticketId');
+      const currentEventId = parseUuid(req.body?.current_event_id, 'current_event_id');
+      const nextEventId    = parseUuid(req.body?.event_id, 'event_id');
+      res.json(await replaceTicketEvent(db, ticketId, currentEventId, nextEventId));
+    }),
+  );
 
   return router;
 }
