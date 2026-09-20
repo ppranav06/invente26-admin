@@ -3,6 +3,10 @@ const cors = require('cors');
 const config = require('./config');
 const { createScanRouter } = require('./routes/scan');
 const { createEventsRouter } = require('./routes/events');
+const { createAuthRouter } = require('./routes/auth');
+const { createUsersRouter } = require('./routes/users');
+const { createAnalyticsRouter } = require('./routes/analytics');
+const { createParticipantsRouter } = require('./routes/participants');
 const { HttpError } = require('./utils/errors');
 
 function createApp({ database } = {}) {
@@ -16,6 +20,10 @@ function createApp({ database } = {}) {
   app.use(express.json({ limit: '32kb' }));
 
   app.get('/health', (_req, res) => res.json({ ok: true }));
+  app.use('/organizers/api', createAuthRouter({ db: databaseClient }));
+  app.use('/organizers/api', createUsersRouter({ db: databaseClient }));
+  app.use('/organizers/api', createAnalyticsRouter({ db: databaseClient }));
+  app.use('/organizers/api', createParticipantsRouter({ db: databaseClient }));
   app.use('/organizers/api', createScanRouter({ db: databaseClient }));
   app.use('/organizers/api', createEventsRouter({ db: databaseClient }));
 
