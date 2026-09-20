@@ -10,6 +10,12 @@ const SELECT_BY_UID = `
   WHERE user_id = $1
 `;
 
+const SELECT_BY_EMAIL = `
+  SELECT user_id, email, role, event_id, dept_name, created_at, updated_at
+  FROM public.admin_users
+  WHERE email = $1
+`;
+
 const SELECT_ALL = `
   SELECT user_id, email, role, event_id, dept_name, created_at, updated_at
   FROM public.admin_users
@@ -36,6 +42,11 @@ const DELETE_USER = `
  */
 async function findAdminUserByUid(db, uid) {
   const result = await db.query(SELECT_BY_UID, [uid]);
+  return result.rows[0] || null;
+}
+
+async function findAdminUserByEmail(db, email) {
+  const result = await db.query(SELECT_BY_EMAIL, [email.toLowerCase().trim()]);
   return result.rows[0] || null;
 }
 
@@ -112,6 +123,7 @@ async function deleteAdminUser(db, userId) {
 
 module.exports = {
   findAdminUserByUid,
+  findAdminUserByEmail,
   listAdminUsers,
   createAdminUser,
   updateAdminUser,

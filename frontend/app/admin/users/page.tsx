@@ -42,9 +42,10 @@ export default function AdminUsersPage() {
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<AdminUserType | null>(null);
-  const [form, setForm] = useState({ user_id: "", email: "", role: "volunteer", event_id: "", dept_name: "" });
+  const [form, setForm] = useState({ email: "", role: "volunteer", event_id: "", dept_name: "" });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [createdResetLink, setCreatedResetLink] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.role !== "master_admin") return;
@@ -92,21 +93,22 @@ export default function AdminUsersPage() {
 
   const openCreate = () => {
     setEditingUser(null);
-    setForm({ user_id: "", email: "", role: "volunteer", event_id: "", dept_name: "" });
+    setForm({ email: "", role: "volunteer", event_id: "", dept_name: "" });
     setFormError(null);
+    setCreatedResetLink(null);
     setShowModal(true);
   };
 
   const openEdit = (u: AdminUserType) => {
     setEditingUser(u);
     setForm({
-      user_id: u.user_id,
       email: u.email,
       role: u.role,
       event_id: u.event_id || "",
       dept_name: u.dept_name || "",
     });
     setFormError(null);
+    setCreatedResetLink(null);
     setShowModal(true);
   };
 
@@ -120,23 +122,29 @@ export default function AdminUsersPage() {
         if (form.event_id !== (editingUser.event_id || "")) updateData.event_id = form.event_id || null;
         if (form.dept_name !== (editingUser.dept_name || "")) updateData.dept_name = form.dept_name || null;
         await updateAdminUser(editingUser.user_id, updateData);
+        setShowModal(false);
+        void reloadUsers();
       } else {
-        if (!form.user_id.trim()) { setFormError("Firebase UID is required."); setSaving(false); return; }
         if (!form.email.trim()) { setFormError("Email is required."); setSaving(false); return; }
-        await createAdminUser({
-          user_id: form.user_id.trim(),
+        const result = await createAdminUser({
           email: form.email.trim(),
           role: form.role,
           event_id: form.event_id || undefined,
           dept_name: form.dept_name || undefined,
         });
+        if (result.password_reset_link) {
+          setCreatedResetLink(result.password_reset_link);
+          setSaving(false);
+          void reloadUsers();
+        } else {
+          setShowModal(false);
+          void reloadUsers();
+        }
       }
-      setShowModal(false);
-      void reloadUsers();
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : "Save failed.");
     } finally {
-      setSaving(false);
+      if (!createdResetLink) setSaving(false);
     }
   };
 
@@ -246,89 +254,119 @@ export default function AdminUsersPage() {
             <h2 className="mb-4 text-lg font-bold text-slate-950">
               {editingUser ? "Edit Admin User" : "Add Admin User"}
             </h2>
-            <div className="space-y-4">
-              {!editingUser && (
-                <>
-                  <div>
-                    <label className="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Firebase UID</label>
+
+            {createdResetLink ? (
+              <div className="space-y-4">
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                  <p className="text-sm font-bold text-emerald-800">User created successfully</p>
+                  <p className="mt-1 text-sm text-emerald-700">
+                    Share this password-reset link with the user. They must click it to set their password before signing in.
+                  </p>
+                  <div className="mt-3">
                     <input
-                      value={form.user_id}
-                      onChange={(e) => setForm({ ...form, user_id: e.target.value })}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
-                      placeholder="Firebase UID"
+                      readOnly
+                      value={createdResetLink}
+                      className="w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 font-mono text-xs text-slate-700"
+                      onClick={(e) => (e.target as HTMLInputElement).select()}
                     />
                   </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Email</label>
-                    <input
-                      type="email"
-                      value={form.email}
-                      onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
-                      placeholder="admin@example.com"
-                    />
-                  </div>
-                </>
-              )}
-              <div>
-                <label className="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Role</label>
-                <select
-                  value={form.role}
-                  onChange={(e) => setForm({ ...form, role: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
-                >
-                  {ROLES.map((r) => (
-                    <option key={r} value={r}>{roleLabel(r)}</option>
-                  ))}
-                </select>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(createdResetLink);
+                    }}
+                    className="mt-2 text-xs font-semibold text-emerald-700 hover:text-emerald-900"
+                  >
+                    Copy link
+                  </button>
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => { setShowModal(false); setCreatedResetLink(null); }}
+                    className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700"
+                  >
+                    Done
+                  </button>
+                </div>
               </div>
-              {form.role === "event_admin" && (
-                <div>
-                  <label className="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Event ID</label>
-                  <input
-                    value={form.event_id}
-                    onChange={(e) => setForm({ ...form, event_id: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
-                    placeholder="Event UUID"
-                  />
-                </div>
-              )}
-              {form.role === "dept_admin" && (
-                <div>
-                  <label className="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Department</label>
-                  <input
-                    value={form.dept_name}
-                    onChange={(e) => setForm({ ...form, dept_name: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
-                    placeholder="Department name"
-                  />
-                </div>
-              )}
+            ) : (
+              <>
+                <div className="space-y-4">
+                  {!editingUser && (
+                    <div>
+                      <label className="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Email</label>
+                      <input
+                        type="email"
+                        value={form.email}
+                        onChange={(e) => setForm({ ...form, email: e.target.value })}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                        placeholder="admin@example.com"
+                      />
+                      <p className="mt-1 text-xs text-slate-400">A Firebase account will be created and a password-reset email sent.</p>
+                    </div>
+                  )}
+                  <div>
+                    <label className="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Role</label>
+                    <select
+                      value={form.role}
+                      onChange={(e) => setForm({ ...form, role: e.target.value })}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                    >
+                      {ROLES.map((r) => (
+                        <option key={r} value={r}>{roleLabel(r)}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {form.role === "event_admin" && (
+                    <div>
+                      <label className="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Event ID</label>
+                      <input
+                        value={form.event_id}
+                        onChange={(e) => setForm({ ...form, event_id: e.target.value })}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                        placeholder="Event UUID"
+                      />
+                    </div>
+                  )}
+                  {form.role === "dept_admin" && (
+                    <div>
+                      <label className="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Department</label>
+                      <input
+                        value={form.dept_name}
+                        onChange={(e) => setForm({ ...form, dept_name: e.target.value })}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                        placeholder="Department name"
+                      />
+                    </div>
+                  )}
 
-              {formError && (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700" role="alert">
-                  {formError}
+                  {formError && (
+                    <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700" role="alert">
+                      {formError}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving}
-                className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-              >
-                {saving ? "Saving…" : editingUser ? "Save changes" : "Create user"}
-              </button>
-            </div>
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                  >
+                    {saving ? "Saving…" : editingUser ? "Save changes" : "Create user"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

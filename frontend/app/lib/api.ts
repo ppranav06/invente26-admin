@@ -146,6 +146,23 @@ export function apiLogin(firebaseIdToken: string) {
   });
 }
 
+export function apiLoginLocal(email: string, password: string) {
+  return rawRequest<{
+    access_token: string;
+    refresh_token: string;
+    user: {
+      user_id: string;
+      email: string;
+      role: string;
+      event_id: string | null;
+      dept_name: string | null;
+    };
+  }>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+}
+
 export function apiRefresh(refreshToken: string) {
   return rawRequest<{ access_token: string }>("/auth/refresh", {
     method: "POST",
@@ -301,13 +318,16 @@ export function listAdminUsers() {
 }
 
 export function createAdminUser(data: {
-  user_id: string;
   email: string;
   role: string;
   event_id?: string;
   dept_name?: string;
 }) {
-  return request<{ user: AdminUserType }>("/users", {
+  return request<{
+    user: AdminUserType;
+    password_reset_link: string | null;
+    firebase_created: boolean;
+  }>("/users", {
     method: "POST",
     body: JSON.stringify(data),
   });

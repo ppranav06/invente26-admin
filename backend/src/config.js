@@ -17,6 +17,10 @@ module.exports = {
   dbConnectionTimeoutMs: numberFromEnv('DB_CONNECTION_TIMEOUT_MS', 5_000),
   dbQueryTimeoutMs: numberFromEnv('DB_QUERY_TIMEOUT_MS', 10_000),
 
+  // Master admin local login (bypasses Firebase)
+  masterAdminEmail: process.env.MASTER_ADMIN_EMAIL || '',
+  masterAdminPassword: process.env.MASTER_ADMIN_PASSWORD || '',
+
   // Firebase
   firebaseProjectId: process.env.FIREBASE_PROJECT_ID || '',
 
