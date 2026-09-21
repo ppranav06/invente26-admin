@@ -23,6 +23,7 @@ module.exports = {
 
   // Firebase
   firebaseProjectId: process.env.FIREBASE_PROJECT_ID || '',
+  firebaseServiceAccountFile: process.env.FIREBASE_SERVICE_ACCOUNT_FILE || '',
 
   // JWT (RS256)
   // Private key PEM — newlines may be escaped as \n in .env

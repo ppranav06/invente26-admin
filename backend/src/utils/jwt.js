@@ -51,9 +51,13 @@ function signRefreshToken(user) {
  */
 function verifyToken(token) {
   try {
+    if (!config.jwtPublicKey) {
+      throw new Error('JWT_PUBLIC_KEY is not set');
+    }
     return jwt.verify(token, config.jwtPublicKey, { algorithms: ['RS256'] });
   } catch (err) {
     const expired = err.name === 'TokenExpiredError';
+    console.error('[JWT] verify failed:', err.message);
     throw new HttpError(
       401,
       expired ? 'token expired' : 'invalid token',
