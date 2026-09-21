@@ -3,6 +3,7 @@
 const jwt = require('jsonwebtoken');
 const config = require('../config');
 const { HttpError } = require('./errors');
+const logger = require('./logger');
 
 /**
  * Sign an RS256 access token.
@@ -57,7 +58,7 @@ function verifyToken(token) {
     return jwt.verify(token, config.jwtPublicKey, { algorithms: ['RS256'] });
   } catch (err) {
     const expired = err.name === 'TokenExpiredError';
-    console.error('[JWT] verify failed:', err.message);
+    logger.warn({ err: { message: err.message, name: err.name }, expired }, 'JWT verify failed');
     throw new HttpError(
       401,
       expired ? 'token expired' : 'invalid token',

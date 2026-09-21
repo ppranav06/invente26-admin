@@ -1,9 +1,27 @@
 'use strict';
 
+const crypto = require('crypto');
+
 const numberFromEnv = (name, fallback) => {
   const value = Number(process.env[name]);
   return Number.isFinite(value) && value > 0 ? value : fallback;
 };
+
+// ── JWT key loading ────────────────────────────────────────────────────────
+const jwtPrivateKey = (process.env.JWT_PRIVATE_KEY || '').replace(/\\n/g, '\n');
+let jwtPublicKey   = (process.env.JWT_PUBLIC_KEY  || '').replace(/\\n/g, '\n');
+
+// Auto-derive public key from private key when not explicitly provided
+if (jwtPrivateKey && !jwtPublicKey) {
+  try {
+    const privateKeyObj  = crypto.createPrivateKey(jwtPrivateKey);
+    const publicKeyObj   = crypto.createPublicKey(privateKeyObj);
+    jwtPublicKey = publicKeyObj.export({ type: 'spki', format: 'pem' });
+    console.log('[config] Derived JWT_PUBLIC_KEY from JWT_PRIVATE_KEY');
+  } catch (err) {
+    console.error(`[config] Could not derive public key from JWT_PRIVATE_KEY: ${err.message}`);
+  }
+}
 
 module.exports = {
   port: numberFromEnv('PORT', 4000),
@@ -26,9 +44,8 @@ module.exports = {
   firebaseServiceAccountFile: process.env.FIREBASE_SERVICE_ACCOUNT_FILE || '',
 
   // JWT (RS256)
-  // Private key PEM — newlines may be escaped as \n in .env
-  jwtPrivateKey: (process.env.JWT_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
-  jwtPublicKey: (process.env.JWT_PUBLIC_KEY || '').replace(/\\n/g, '\n'),
+  jwtPrivateKey,
+  jwtPublicKey,
   accessTokenExpiresIn: process.env.ACCESS_TOKEN_EXPIRES_IN || '15m',
   refreshTokenExpiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN || '7d',
 };
