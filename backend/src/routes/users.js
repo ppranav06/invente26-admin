@@ -2,6 +2,7 @@
 
 const express = require('express');
 const crypto = require('crypto');
+const uuid = require('uuid');
 const admin = require('firebase-admin');
 const logger = require('../utils/logger');
 const { authn } = require('../middleware/authn');
@@ -55,53 +56,9 @@ function createUsersRouter({ db }) {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
-    const userId = crypto.randomUUID();
+    const userId = uuid.v7();
 
-    // Create Firebase user account with a random temp password.
-    // The user will reset it via the password-reset link.
-    let firebaseCreated = false;
-    let passwordResetLink = null;
-
-    try {
-      const tempPassword = crypto.randomBytes(16).toString('base64url');
-      await admin.auth().createUser({
-        uid: userId,
-        email: normalizedEmail,
-        password: tempPassword,
-        emailVerified: false,
-      });
-      firebaseCreated = true;
-
-      // Generate a password-reset link so the user can set their own password.
-      passwordResetLink = await admin.auth().generatePasswordResetLink(normalizedEmail);
-    } catch (firebaseErr) {
-      // If the Firebase user already exists, try to generate a reset link for them.
-      if (firebaseErr.code === 'auth/email-already-exists') {
-        try {
-          const existingUser = await admin.auth().getUserByEmail(normalizedEmail);
-          passwordResetLink = await admin.auth().generatePasswordResetLink(normalizedEmail);
-          // Use the existing Firebase UID for the admin_users row
-          // so the two stay in sync.
-          return res.status(201).json({
-            user: await createAdminUser(db, {
-              userId: existingUser.uid,
-              email: normalizedEmail,
-              role,
-              eventId: event_id || null,
-              deptName: dept_name || null,
-            }),
-            password_reset_link: passwordResetLink,
-          });
-        } catch (linkErr) {
-          // Fall through — we'll still create the DB row but warn about Firebase.
-          console.error('Could not generate reset link for existing Firebase user:', linkErr);
-        }
-      } else {
-        console.error('Firebase user creation failed:', firebaseErr);
-      }
-    }
-
-    // Insert into admin_users regardless of Firebase outcome.
+    // Insert into admin_users (allow the user to log in)
     const user = await createAdminUser(db, {
       userId,
       email: normalizedEmail,
@@ -113,9 +70,7 @@ function createUsersRouter({ db }) {
     logger.info({ type: 'user_created', user_id: user.user_id, email: normalizedEmail, role, created_by: req.adminUser?.userId }, 'Admin user created');
 
     return res.status(201).json({
-      user,
-      password_reset_link: passwordResetLink,
-      firebase_created: firebaseCreated,
+      user
     });
   }));
 

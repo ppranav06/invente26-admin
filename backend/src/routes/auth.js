@@ -39,52 +39,10 @@ function createAuthRouter({ db }) {
   router.post('/auth/login', asyncHandler(async (req, res) => {
     const { firebase_id_token, email, password } = req.body || {};
 
-    // ── Mode 1: Master admin local login ───────────────────────────────────
-    if (email && password && !firebase_id_token) {
-      if (!config.masterAdminEmail || !config.masterAdminPassword) {
-        logger.warn({ type: 'auth_login', method: 'local', reason: 'disabled' }, 'Local login disabled');
-        throw new HttpError(401, 'local login is not configured', 'LOCAL_LOGIN_DISABLED');
-      }
-
-      if (email.toLowerCase().trim() !== config.masterAdminEmail.toLowerCase().trim() || password !== config.masterAdminPassword) {
-        logger.warn({ type: 'auth_login', method: 'local', email: email.toLowerCase().trim(), reason: 'invalid_credentials' }, 'Local login failed');
-        throw new HttpError(401, 'invalid email or password', 'INVALID_CREDENTIALS');
-      }
-
-      // Auto-create the master admin user in DB if not present
-      let adminUser = await findAdminUserByEmail(db, email);
-      let created = false;
-      if (!adminUser) {
-        adminUser = await createAdminUser(db, {
-          userId:  `local-${crypto.randomUUID()}`,
-          email:   email.toLowerCase().trim(),
-          role:    'master_admin',
-        });
-        created = true;
-      }
-
-      const tokens = await issueTokens(db, adminUser);
-      await storeRefreshToken(db, adminUser.user_id, tokens.refreshToken);
-
-      logger.info({ type: 'auth_login', method: 'local', user_id: adminUser.user_id, email: adminUser.email, role: adminUser.role, auto_created: created }, 'Master admin logged in');
-
-      return res.status(200).json({
-        access_token:  tokens.accessToken,
-        refresh_token: tokens.refreshToken,
-        user: {
-          user_id:   adminUser.user_id,
-          email:     adminUser.email,
-          role:      adminUser.role,
-          event_id:  adminUser.event_id  || null,
-          dept_name: adminUser.dept_name || null,
-        },
-      });
-    }
-
-    // ── Mode 2: Firebase ID token ──────────────────────────────────────────
+    // ── Firebase ID token ──────────────────────────────────────────
     if (firebase_id_token) {
       const decoded = await verifyFirebaseToken(firebase_id_token);
-      const adminUser = await findAdminUserByUid(db, decoded.uid);
+      const adminUser = await findAdminUserByEmail(db, decoded.email);
 
       if (!adminUser) {
         logger.warn({ type: 'auth_login', method: 'firebase', uid: decoded.uid, reason: 'not_provisioned' }, 'Firebase login failed: not provisioned');
