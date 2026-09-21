@@ -18,7 +18,7 @@ const COLLEGE_ANALYTICS_QUERY = `
         JOIN public.ticket_payments tp2 ON tp2.ticket_id = te2.ticket_id
         JOIN public.events e2 ON e2.event_id = te2.event_id
         WHERE e2.event_type = evt.event_type
-          AND tp2.status = 'Accepted';
+          AND tp2.status IN ('Accepted')
       )
     )                                                                   AS regs_by_event_type,
 
@@ -35,7 +35,7 @@ const COLLEGE_ANALYTICS_QUERY = `
   CROSS JOIN (SELECT DISTINCT event_type FROM public.events) AS evt
   LEFT JOIN public.ticket_event te ON te.event_id = e.event_id
   LEFT JOIN public.ticket_payments tp ON tp.ticket_id = te.ticket_id
-    AND tp.status = 'Accepted';
+    AND tp.status IN ('Accepted')
 `;
 
 async function getCollegeAnalytics(db) {
@@ -122,7 +122,7 @@ const EVENT_DETAIL_QUERY = `
     FROM public.ticket_event te
     JOIN public.ticket_payments tp ON tp.ticket_id = te.ticket_id
     WHERE te.event_id = $1
-      AND tp.status = 'Accepted';
+      AND tp.status IN ('Accepted')
     GROUP BY 1
     ORDER BY 1
   ),
