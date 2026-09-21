@@ -3,39 +3,56 @@
 // ── College-level analytics ───────────────────────────────────────────────────
 
 const COLLEGE_ANALYTICS_QUERY = `
-  SELECT
-    COUNT(DISTINCT te.ticket_id)                                        AS total_registrations,
-    COUNT(DISTINCT CASE WHEN te.attendance THEN te.ticket_id END)       AS total_attended,
-    COUNT(DISTINCT e.event_id)                                          AS total_events,
-    COUNT(DISTINCT e.dept_name)                                         AS total_depts,
-
-    -- Registration breakdown by event type
-    jsonb_object_agg(
-      DISTINCT evt.event_type,
-      (
-        SELECT COUNT(DISTINCT te2.ticket_id)
-        FROM public.ticket_event te2
-        JOIN public.ticket_payments tp2 ON tp2.ticket_id = te2.ticket_id
-        JOIN public.events e2 ON e2.event_id = te2.event_id
-        WHERE e2.event_type = evt.event_type
-          AND tp2.status = 'Accepted';
-      )
-    )                                                                   AS regs_by_event_type,
-
-    -- Dept-level summary
-    jsonb_agg(
-      DISTINCT jsonb_build_object(
-        'dept_name', e.dept_name,
-        'reg_count', COALESCE(e.reg_count, 0),
-        'attend_count', COALESCE(e.attend_count, 0)
-      )
-    )                                                                   AS dept_summary
-
-  FROM public.events e
-  CROSS JOIN (SELECT DISTINCT event_type FROM public.events) AS evt
-  LEFT JOIN public.ticket_event te ON te.event_id = e.event_id
-  LEFT JOIN public.ticket_payments tp ON tp.ticket_id = te.ticket_id
-    AND tp.status = 'Accepted';
+  WITH verified_registrations AS (
+      -- Single pass to join and filter verified tickets
+      SELECT 
+          te.ticket_id,
+          te.event_id,
+          te.attendance,
+          e.dept_name,
+          e.event_type
+      FROM public.events e
+      JOIN public.ticket_event te 
+        ON te.event_id = e.event_id
+      JOIN public.ticket_payments tp 
+        ON tp.ticket_id = te.ticket_id
+      WHERE tp.status = 'Accepted'
+  ),
+  dept_aggregates AS (
+      -- Computes reg_count and attend_count per department
+      SELECT 
+          e.dept_name,
+          COUNT(DISTINCT vr.ticket_id)                                  AS reg_count,
+          COUNT(DISTINCT CASE WHEN vr.attendance THEN vr.ticket_id END) AS attend_count
+      FROM (SELECT DISTINCT dept_name FROM public.events) e
+      LEFT JOIN verified_registrations vr 
+        ON vr.dept_name = e.dept_name
+      GROUP BY e.dept_name
+  ),
+  event_type_aggregates AS (
+      -- Computes reg_count per event_type
+      SELECT 
+          e.event_type,
+          COUNT(DISTINCT vr.ticket_id) AS reg_count
+      FROM (SELECT DISTINCT event_type FROM public.events) e
+      LEFT JOIN verified_registrations vr 
+        ON vr.event_type = e.event_type
+      GROUP BY e.event_type
+  )
+  SELECT 
+      COALESCE(COUNT(DISTINCT vr.ticket_id), 0)                                 AS total_registrations,
+      COALESCE(COUNT(DISTINCT CASE WHEN vr.attendance THEN vr.ticket_id END), 0) AS total_attended,
+      (SELECT COUNT(*) FROM public.events)                                       AS total_events,
+      (SELECT COUNT(DISTINCT dept_name) FROM public.events)                      AS total_depts,
+      (SELECT COALESCE(jsonb_object_agg(event_type, reg_count), '{}'::jsonb) 
+      FROM event_type_aggregates)                                               AS regs_by_event_type,
+      (SELECT COALESCE(jsonb_agg(jsonb_build_object(
+          'dept_name', dept_name,
+          'reg_count', reg_count,
+          'attend_count', attend_count
+      )), '[]'::jsonb) 
+      FROM dept_aggregates)                                                     AS dept_summary
+  FROM verified_registrations vr
 `;
 
 async function getCollegeAnalytics(db) {
@@ -47,26 +64,41 @@ async function getCollegeAnalytics(db) {
 
 async function getDeptAnalytics(db, deptName = null) {
   const sql = `
+    WITH event_stats AS (
+        -- Aggregate registrations and attendance per individual event
+        SELECT 
+            e.event_id,
+            e.name,
+            e.dept_name,
+            e.event_type,
+            e.date,
+            COUNT(DISTINCT CASE WHEN tp.status = 'Accepted' THEN te.ticket_id END) AS reg_count,
+            COUNT(DISTINCT CASE WHEN tp.status = 'Accepted' AND te.attendance THEN te.ticket_id END) AS attend_count
+        FROM public.events e
+        LEFT JOIN public.ticket_event te ON te.event_id = e.event_id
+        LEFT JOIN public.ticket_payments tp ON tp.ticket_id = te.ticket_id
+        ${deptName ? 'WHERE e.dept_name = $1' : ''}
+        GROUP BY e.event_id, e.name, e.dept_name, e.event_type, e.date
+    )
     SELECT
-      e.dept_name,
-      COUNT(DISTINCT e.event_id)                                        AS event_count,
-      COALESCE(SUM(e.reg_count), 0)                                     AS total_registrations,
-      COALESCE(SUM(e.attend_count), 0)                                  AS total_attended,
-      jsonb_agg(
-        jsonb_build_object(
-          'event_id',     e.event_id,
-          'name',         e.name,
-          'event_type',   e.event_type,
-          'date',         e.date,
-          'reg_count',    COALESCE(e.reg_count, 0),
-          'attend_count', COALESCE(e.attend_count, 0)
-        )
-        ORDER BY e.name
-      )                                                                 AS events
-    FROM public.events e
-    ${deptName ? 'WHERE e.dept_name = $1' : ''}
-    GROUP BY e.dept_name
-    ORDER BY e.dept_name
+        es.dept_name,
+        COUNT(DISTINCT es.event_id)         AS event_count,
+        COALESCE(SUM(es.reg_count), 0)      AS total_registrations,
+        COALESCE(SUM(es.attend_count), 0)   AS total_attended,
+        jsonb_agg(
+            jsonb_build_object(
+                'event_id',     es.event_id,
+                'name',         es.name,
+                'event_type',   es.event_type,
+                'date',         es.date,
+                'reg_count',    es.reg_count,
+                'attend_count', es.attend_count
+            )
+            ORDER BY es.name
+        ) AS events
+    FROM event_stats es
+    GROUP BY es.dept_name
+    ORDER BY es.dept_name
   `;
   const result = await db.query(sql, deptName ? [deptName] : []);
   return result.rows;
@@ -101,10 +133,20 @@ async function getEventsAnalytics(db, filters = {}) {
       e.dept_name,
       e.event_type,
       e.date,
-      COALESCE(e.reg_count, 0)     AS reg_count,
-      COALESCE(e.attend_count, 0)  AS attend_count
+      COUNT(DISTINCT CASE WHEN tp.status = 'Accepted' THEN te.ticket_id END) AS reg_count,
+      COUNT(DISTINCT CASE WHEN tp.status = 'Accepted' AND te.attendance THEN te.ticket_id END) AS attend_count
     FROM public.events e
+    LEFT JOIN public.ticket_event te 
+      ON te.event_id = e.event_id
+    LEFT JOIN public.ticket_payments tp 
+      ON tp.ticket_id = te.ticket_id
     ${whereClause}
+    GROUP BY 
+      e.event_id, 
+      e.name, 
+      e.dept_name, 
+      e.event_type, 
+      e.date
     ORDER BY e.dept_name, e.name
   `;
 
@@ -115,42 +157,55 @@ async function getEventsAnalytics(db, filters = {}) {
 // ── Single event analytics ────────────────────────────────────────────────────
 
 const EVENT_DETAIL_QUERY = `
-  WITH regs_by_day AS (
-    SELECT
-      DATE_TRUNC('day', tp.created_at) AS day,
-      COUNT(DISTINCT te.ticket_id)     AS count
-    FROM public.ticket_event te
-    JOIN public.ticket_payments tp ON tp.ticket_id = te.ticket_id
-    WHERE te.event_id = $1
-      AND tp.status = 'Accepted';
-    GROUP BY 1
-    ORDER BY 1
+  WITH event_tickets AS (
+      -- Fetch all tickets linked to this event along with payment status
+      SELECT 
+          te.ticket_id,
+          te.attendance,
+          tp.status,
+          DATE_TRUNC('day', tp.created_at) AS pay_day
+      FROM public.ticket_event te
+      JOIN public.ticket_payments tp ON tp.ticket_id = te.ticket_id
+      WHERE te.event_id = $1
+  ),
+  regs_by_day AS (
+      -- Daily count of accepted registrations
+      SELECT 
+          TO_CHAR(pay_day, 'YYYY-MM-DD') AS day,
+          COUNT(DISTINCT ticket_id)     AS count
+      FROM event_tickets
+      WHERE status = 'Accepted'
+      GROUP BY pay_day
+      ORDER BY pay_day
   ),
   status_counts AS (
-    SELECT tp.status, COUNT(*) AS count
-    FROM public.ticket_event te
-    JOIN public.ticket_payments tp ON tp.ticket_id = te.ticket_id
-    WHERE te.event_id = $1
-    GROUP BY tp.status
+      -- Breakdown across all payment statuses (Accepted, Pending, Rejected, etc.)
+      SELECT 
+          status, 
+          COUNT(DISTINCT ticket_id) AS count
+      FROM event_tickets
+      GROUP BY status
   )
   SELECT
-    e.event_id,
-    e.name,
-    e.dept_name,
-    e.event_type,
-    e.date,
-    COALESCE(e.reg_count, 0)     AS reg_count,
-    COALESCE(e.attend_count, 0)  AS attend_count,
-    COALESCE(
-      (SELECT jsonb_agg(jsonb_build_object('day', day, 'count', count)) FROM regs_by_day),
-      '[]'::jsonb
-    )                            AS registrations_by_day,
-    COALESCE(
-      (SELECT jsonb_object_agg(status, count) FROM status_counts),
-      '{}'::jsonb
-    )                            AS registrations_by_status
+      e.event_id,
+      e.name,
+      e.dept_name,
+      e.event_type,
+      e.date,
+      COALESCE(COUNT(DISTINCT CASE WHEN et.status = 'Accepted' THEN et.ticket_id END), 0) AS reg_count,
+      COALESCE(COUNT(DISTINCT CASE WHEN et.status = 'Accepted' AND et.attendance THEN et.ticket_id END), 0) AS attend_count,
+      COALESCE(
+        (SELECT jsonb_agg(jsonb_build_object('day', day, 'count', count)) FROM regs_by_day),
+        '[]'::jsonb
+      ) AS registrations_by_day,
+      COALESCE(
+        (SELECT jsonb_object_agg(status, count) FROM status_counts),
+        '{}'::jsonb
+      ) AS registrations_by_status
   FROM public.events e
+  LEFT JOIN event_tickets et ON true
   WHERE e.event_id = $1
+  GROUP BY e.event_id, e.name, e.dept_name, e.event_type, e.date
 `;
 
 async function getEventAnalyticsById(db, eventId) {
