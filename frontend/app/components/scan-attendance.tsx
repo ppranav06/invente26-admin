@@ -3,10 +3,11 @@
 import { useCallback, useState } from "react";
 import { ApiError, markAttendance } from "../lib/api";
 import type { TicketEvent, TicketResponse } from "../lib/types";
+import { useAuth } from "../lib/authContext";
 import TicketLookup from "./ticket-lookup";
 import TicketSummary from "./ticket-summary";
 
-function EventCard({ event, busy, onMark }: { event: TicketEvent; busy: boolean; onMark: () => void }) {
+function EventCard({ event, busy, onMark, canMark }: { event: TicketEvent; busy: boolean; onMark: () => void; canMark: boolean }) {
   return (
     <article className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 transition hover:border-indigo-200 hover:bg-white sm:p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -23,21 +24,24 @@ function EventCard({ event, busy, onMark }: { event: TicketEvent; busy: boolean;
             <span className="grid h-5 w-5 place-items-center rounded-full bg-emerald-600 text-xs text-white">✓</span>
             Present
           </div>
-        ) : (
+        ) : canMark ? (
           <button type="button" onClick={onMark} disabled={busy} className="shrink-0 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-wait disabled:bg-slate-300">
             {busy ? "Marking…" : "Mark attendance"}
           </button>
-        )}
+        ) : null}
       </div>
     </article>
   );
 }
 
 export default function ScanAttendance() {
+  const { user } = useAuth();
   const [data, setData] = useState<TicketResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [busyEventId, setBusyEventId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  const canMarkAttendance = user?.role === "master_admin" || user?.role === "event_admin";
 
   const onLoaded = useCallback((nextData: TicketResponse) => {
     setData(nextData);
@@ -89,7 +93,7 @@ export default function ScanAttendance() {
             <TicketSummary ticket={data.ticket} />
             <div className="space-y-3 p-5 sm:p-6">
               {data.events.length === 0 && <p className="rounded-xl bg-slate-50 p-5 text-sm text-slate-500">No events are associated with this ticket.</p>}
-              {data.events.map((event) => <EventCard key={event.event_id} event={event} busy={busyEventId === event.event_id} onMark={() => void handleMark(event.event_id)} />)}
+              {data.events.map((event) => <EventCard key={event.event_id} event={event} busy={busyEventId === event.event_id} onMark={() => void handleMark(event.event_id)} canMark={canMarkAttendance} />)}
             </div>
             {data.hackathon_teams.length > 0 && (
               <div className="border-t border-slate-200 px-5 py-5 sm:px-6">
