@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const logger = require('../utils/logger');
 const { getTicketDetails } = require('../services/ticketService');
 const { markAttendance } = require('../services/attendanceService');
 const { replaceTicketEvent } = require('../services/assignmentService');
@@ -42,7 +43,9 @@ function createScanRouter({ db }) {
       // Scope guard: event_admin can only mark attendance for their own event
       assertEventScope(req.adminUser, eventId);
 
-      res.json(await markAttendance(db, ticketId, eventId));
+      const result = await markAttendance(db, ticketId, eventId);
+      logger.info({ type: 'attendance_marked', ticket_id: ticketId, event_id: eventId, already_attended: result.already_attended, user_id: req.adminUser?.userId }, 'Attendance marked');
+      res.json(result);
     }),
   );
 
@@ -60,7 +63,9 @@ function createScanRouter({ db }) {
       const ticketId      = parseUuid(req.params.ticketId, 'ticketId');
       const currentEventId = parseUuid(req.body?.current_event_id, 'current_event_id');
       const nextEventId    = parseUuid(req.body?.event_id, 'event_id');
-      res.json(await replaceTicketEvent(db, ticketId, currentEventId, nextEventId));
+      const result = await replaceTicketEvent(db, ticketId, currentEventId, nextEventId);
+      logger.info({ type: 'event_assigned', ticket_id: ticketId, from_event_id: currentEventId, to_event_id: nextEventId, user_id: req.adminUser?.userId }, 'Ticket event reassigned');
+      res.json(result);
     }),
   );
 

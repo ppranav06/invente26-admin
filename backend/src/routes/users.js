@@ -3,6 +3,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const admin = require('firebase-admin');
+const logger = require('../utils/logger');
 const { authn } = require('../middleware/authn');
 const { authz } = require('../middleware/authz');
 const { PERMISSIONS } = require('../config/permissions');
@@ -109,6 +110,8 @@ function createUsersRouter({ db }) {
       deptName: dept_name || null,
     });
 
+    logger.info({ type: 'user_created', user_id: user.user_id, email: normalizedEmail, role, created_by: req.adminUser?.userId }, 'Admin user created');
+
     return res.status(201).json({
       user,
       password_reset_link: passwordResetLink,
@@ -138,6 +141,7 @@ function createUsersRouter({ db }) {
 
     await revokeAllUserTokens(db, userId);
 
+    logger.info({ type: 'user_updated', user_id: userId, updated_by: req.adminUser?.userId, fields: Object.keys({ ...(role && { role }), ...(event_id !== undefined && { event_id }), ...(dept_name !== undefined && { dept_name }) }) }, 'Admin user updated');
     return res.status(200).json({ user: updated });
   }));
 
@@ -150,6 +154,7 @@ function createUsersRouter({ db }) {
     const { userId } = req.params;
     await revokeAllUserTokens(db, userId);
     await deleteAdminUser(db, userId);
+    logger.info({ type: 'user_deleted', user_id: userId, deleted_by: req.adminUser?.userId }, 'Admin user deleted');
     return res.status(200).json({ ok: true });
   }));
 

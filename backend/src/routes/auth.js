@@ -3,6 +3,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const config = require('../config');
+const logger = require('../utils/logger');
 const { verifyFirebaseToken } = require('../utils/firebaseAdmin');
 const { signAccessToken, signRefreshToken, verifyToken } = require('../utils/jwt');
 const { findAdminUserByUid, findAdminUserByEmail, createAdminUser } = require('../services/adminUserService');
@@ -41,25 +42,31 @@ function createAuthRouter({ db }) {
     // ── Mode 1: Master admin local login ───────────────────────────────────
     if (email && password && !firebase_id_token) {
       if (!config.masterAdminEmail || !config.masterAdminPassword) {
+        logger.warn({ type: 'auth_login', method: 'local', reason: 'disabled' }, 'Local login disabled');
         throw new HttpError(401, 'local login is not configured', 'LOCAL_LOGIN_DISABLED');
       }
 
       if (email.toLowerCase().trim() !== config.masterAdminEmail.toLowerCase().trim() || password !== config.masterAdminPassword) {
+        logger.warn({ type: 'auth_login', method: 'local', email: email.toLowerCase().trim(), reason: 'invalid_credentials' }, 'Local login failed');
         throw new HttpError(401, 'invalid email or password', 'INVALID_CREDENTIALS');
       }
 
       // Auto-create the master admin user in DB if not present
       let adminUser = await findAdminUserByEmail(db, email);
+      let created = false;
       if (!adminUser) {
         adminUser = await createAdminUser(db, {
           userId:  `local-${crypto.randomUUID()}`,
           email:   email.toLowerCase().trim(),
           role:    'master_admin',
         });
+        created = true;
       }
 
       const tokens = await issueTokens(db, adminUser);
       await storeRefreshToken(db, adminUser.user_id, tokens.refreshToken);
+
+      logger.info({ type: 'auth_login', method: 'local', user_id: adminUser.user_id, email: adminUser.email, role: adminUser.role, auto_created: created }, 'Master admin logged in');
 
       return res.status(200).json({
         access_token:  tokens.accessToken,
@@ -80,11 +87,14 @@ function createAuthRouter({ db }) {
       const adminUser = await findAdminUserByUid(db, decoded.uid);
 
       if (!adminUser) {
+        logger.warn({ type: 'auth_login', method: 'firebase', uid: decoded.uid, reason: 'not_provisioned' }, 'Firebase login failed: not provisioned');
         throw new HttpError(401, 'account not provisioned — contact a master admin', 'NOT_PROVISIONED');
       }
 
       const tokens = await issueTokens(db, adminUser);
       await storeRefreshToken(db, adminUser.user_id, tokens.refreshToken);
+
+      logger.info({ type: 'auth_login', method: 'firebase', user_id: adminUser.user_id, email: adminUser.email, role: adminUser.role }, 'User logged in via Firebase');
 
       return res.status(200).json({
         access_token:  tokens.accessToken,
@@ -122,6 +132,7 @@ function createAuthRouter({ db }) {
 
     const row = await validateRefreshToken(db, refresh_token);
     if (!row) {
+      logger.warn({ type: 'auth_refresh', reason: 'invalid_or_revoked' }, 'Token refresh failed');
       throw new HttpError(401, 'refresh token is invalid or revoked', 'REFRESH_TOKEN_INVALID');
     }
 
@@ -133,6 +144,7 @@ function createAuthRouter({ db }) {
       deptName: row.dept_name || null,
     });
 
+    logger.info({ type: 'auth_refresh', user_id: row.user_id }, 'Token refreshed');
     return res.status(200).json({ access_token: accessToken });
   }));
 
@@ -148,6 +160,7 @@ function createAuthRouter({ db }) {
     if (refresh_token && typeof refresh_token === 'string') {
       await revokeRefreshToken(db, refresh_token);
     }
+    logger.info({ type: 'auth_logout', user_id: req.adminUser?.userId }, 'User logged out');
     return res.status(200).json({ ok: true });
   }));
 

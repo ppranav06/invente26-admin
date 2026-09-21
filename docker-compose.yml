@@ -7,6 +7,9 @@ services:
     environment:
       PORT: 4000
       TZ: Asia/Kolkata
+      LOG_LEVEL: info
+      # LOKI_URL: http://loki:3100/loki/api/v1/push
+      SERVICE_NAME: invente26-admin-backend
     ports:
       - "4001:4000"
     healthcheck:
