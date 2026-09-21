@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/app/lib/authContext";
 
 const ALL_LINKS = [
@@ -15,9 +15,15 @@ const ALL_LINKS = [
 
 export default function AdminNavigation() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, logout } = useAuth();
 
   const links = user ? ALL_LINKS.filter((link) => link.allowedRoles.includes(user.role)) : [];
+
+  const handleSignOut = async () => {
+    await logout();
+    router.push("/login");
+  };
 
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/95 backdrop-blur">
@@ -50,6 +56,16 @@ export default function AdminNavigation() {
             );
           })}
         </nav>
+
+        {user && (
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 sm:px-4 sm:text-sm"
+          >
+            Sign out
+          </button>
+        )}
       </div>
     </header>
   );

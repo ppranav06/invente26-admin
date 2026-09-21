@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/lib/authContext";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/app/lib/firebase";
@@ -8,6 +10,7 @@ import { ApiError } from "@/app/lib/api";
 
 export default function LoginPage() {
   const { signIn } = useAuth();
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,6 +24,7 @@ export default function LoginPage() {
     setError(null);
     try {
       await signIn(email, password);
+      router.push("/");
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -135,6 +139,12 @@ export default function LoginPage() {
             >
               {resetLoading ? "Sending…" : resetSent ? "Reset email sent" : "Forgot password?"}
             </button>
+          </div>
+
+          <div className="mt-3 text-center">
+            <Link href="/signup" className="text-xs font-medium text-indigo-600 hover:text-indigo-800">
+              Don&apos;t have an account? Sign up
+            </Link>
           </div>
         </div>
       </div>

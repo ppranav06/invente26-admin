@@ -85,13 +85,6 @@ export default function Home() {
             Signed in as <span className="font-medium text-slate-700">{user.email}</span> · <span className="font-medium text-indigo-600">{roleLabel(user.role)}</span>
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => void logout()}
-          className="self-start rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-950"
-        >
-          Sign out
-        </button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
