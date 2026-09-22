@@ -342,12 +342,16 @@ export default function AdminUsersPage() {
      {form.role === "dept_admin" && (
      <div>
       <label className="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Department</label>
-      <input
-      value={form.dept_name}
-      onChange={(e) => setForm({ ...form, dept_name: e.target.value })}
-      className="w-full border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
-      placeholder="Department name"
-      />
+      <select
+       value={form.dept_name}
+       onChange={(e) => setForm({ ...form, dept_name: e.target.value })}
+       className="w-full border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+      >
+       <option value="">Select a department</option>
+       {["BME", "CHEM", "Civil", "Commerce", "CSE (SSN)", "CSE (SNUC)", "ECE", "EEE", "IT", "Mechanical Engineering", "Open to All Departments"].map((dept) => (
+        <option key={dept} value={dept}>{dept}</option>
+       ))}
+      </select>
      </div>
      )}
 

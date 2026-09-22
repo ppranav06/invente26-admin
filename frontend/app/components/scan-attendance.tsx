@@ -40,12 +40,16 @@ export default function ScanAttendance() {
  const [loading, setLoading] = useState(false);
  const [busyEventId, setBusyEventId] = useState<string | null>(null);
  const [message, setMessage] = useState<string | null>(null);
+ const [brightness, setBrightness] = useState(1);
+ const [zoom, setZoom] = useState(1);
 
  const canMarkAttendance = user?.role === "master_admin" || user?.role === "super_admin";
 
  const isEventAdminFor = (eventId: string): boolean => {
   return user?.role === "event_admin" && user?.event_id === eventId;
  };
+
+ const isDeptAdmin = user?.role === "dept_admin";
 
  const onLoaded = useCallback((nextData: TicketResponse) => {
  setData(nextData);
@@ -78,7 +82,19 @@ export default function ScanAttendance() {
  return (
  <main className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] lg:px-8 lg:py-8">
   <section className="panel p-5 sm:p-6">
-  <TicketLookup onLoaded={onLoaded} onLoadingChange={setLoading} />
+  <TicketLookup onLoaded={onLoaded} onLoadingChange={setLoading} brightness={brightness} zoom={zoom} />
+  <div className="mt-4 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center">
+   <div className="flex items-center gap-3">
+    <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Brightness</label>
+    <input type="range" min="0.3" max="2" step="0.1" value={brightness} onChange={(e) => setBrightness(parseFloat(e.target.value))} className="w-24 accent-indigo-600" />
+    <span className="w-8 text-xs font-bold tabular-nums text-slate-500">{brightness.toFixed(1)}x</span>
+   </div>
+   <div className="flex items-center gap-3">
+    <label className="text-xs font-bold uppercase tracking-wide text-slate-500">Zoom</label>
+    <input type="range" min="0.5" max="3" step="0.1" value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))} className="w-24 accent-indigo-600" />
+    <span className="w-8 text-xs font-bold tabular-nums text-slate-500">{zoom.toFixed(1)}x</span>
+   </div>
+  </div>
   </section>
 
   <section className="panel min-h-[32rem] overflow-hidden">
@@ -89,6 +105,12 @@ export default function ScanAttendance() {
   </div>
 
   {message && <div className="mx-5 mt-5 border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-medium text-indigo-800 sm:mx-6" role="status">{message}</div>}
+
+  {isDeptAdmin && (
+   <div className="mx-5 mt-5 border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 sm:mx-6">
+    You are viewing ticket details only. Attendance marking is not available for your role.
+   </div>
+  )}
 
   {loading && <div className="grid place-items-center px-6 py-24 text-sm font-medium text-slate-500">Loading ticket events…</div>}
   {!loading && !data && <div className="grid place-items-center px-6 py-24 text-center"><div><div className="mx-auto grid h-14 w-14 place-items-center bg-indigo-50 text-2xl text-indigo-600">⌁</div><p className="mt-4 font-bold text-slate-700">No ticket loaded</p><p className="mt-1 text-sm text-slate-500">Scan a QR code or enter a ticket UUID to begin.</p></div></div>}

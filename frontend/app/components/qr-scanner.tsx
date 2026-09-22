@@ -13,9 +13,11 @@ function getQrBox(viewfinderWidth: number, viewfinderHeight: number) {
 type Props = {
  onDecoded: (value: string) => void;
  disabled?: boolean;
+ brightness?: number;
+ zoom?: number;
 };
 
-export default function QrScanner({ onDecoded, disabled = false }: Props) {
+export default function QrScanner({ onDecoded, disabled = false, brightness = 1, zoom = 1 }: Props) {
  const rawId = useId();
  const readerId = `qr-reader-${rawId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
  const scannerRef = useRef<Html5Qrcode | null>(null);
@@ -120,21 +122,23 @@ export default function QrScanner({ onDecoded, disabled = false }: Props) {
 
  return (
  <div className="space-y-4">
-  <div className="relative overflow-hidden bg-slate-950 shadow-inner">
-  <div id={readerId} className="qr-reader min-h-72 w-full sm:min-h-96" />
-  {(!scanning || status || error || disabled) && (
-   <div className="absolute inset-0 grid place-items-center bg-slate-950/85 p-6 text-center text-white">
-   <div>
-    <div className="mx-auto mb-3 grid h-12 w-12 place-items-center bg-white/10 text-2xl">▣</div>
-    <p className="font-semibold">{error ? "Camera unavailable" : disabled ? "Loading ticket" : scanning ? "Starting scanner" : "Scanner paused"}</p>
-    <p className="mt-1 max-w-xs text-sm text-slate-300">{error || status || "Press start to scan a ticket QR code."}</p>
+   <div className="relative overflow-hidden bg-slate-950 shadow-inner" style={{ filter: `brightness(${brightness})` }}>
+    <div style={{ transform: `scale(${zoom})`, transformOrigin: "center" }}>
+    <div id={readerId} className="qr-reader min-h-72 w-full sm:min-h-96" />
+    </div>
+   {(!scanning || status || error || disabled) && (
+    <div className="absolute inset-0 grid place-items-center bg-slate-950/85 p-6 text-center text-white">
+    <div>
+     <div className="mx-auto mb-3 grid h-12 w-12 place-items-center bg-white/10 text-2xl">▣</div>
+     <p className="font-semibold">{error ? "Camera unavailable" : disabled ? "Loading ticket" : scanning ? "Starting scanner" : "Scanner paused"}</p>
+     <p className="mt-1 max-w-xs text-sm text-slate-300">{error || status || "Press start to scan a ticket QR code."}</p>
+    </div>
+    </div>
+   )}
+   {scanning && !status && !error && !disabled && (
+    <div className="absolute right-3 top-3 rounded-full bg-emerald-500 px-3 py-1 text-xs font-bold text-white shadow">Scanning</div>
+   )}
    </div>
-   </div>
-  )}
-  {scanning && !status && !error && !disabled && (
-   <div className="absolute right-3 top-3 rounded-full bg-emerald-500 px-3 py-1 text-xs font-bold text-white shadow">Scanning</div>
-  )}
-  </div>
 
   <div className="flex flex-col gap-3 sm:flex-row">
   <button

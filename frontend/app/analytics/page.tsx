@@ -41,12 +41,12 @@ type EventRow = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
- TECH: "#6366f1",
- CULTURAL: "#f59e0b",
- WORKSHOP: "#10b981",
- SEMINAR: "#3b82f6",
- COMPETITION: "#ef4444",
- default: "#8b5cf6",
+ TECH: "#2563eb",
+ CULTURAL: "#dc2626",
+ WORKSHOP: "#16a34a",
+ SEMINAR: "#ea580c",
+ COMPETITION: "#9333ea",
+ default: "#0891b2",
 };
 
 function getTypeColor(type: string): string {

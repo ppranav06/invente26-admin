@@ -25,7 +25,7 @@ export default function ModifyEvents() {
  const [savingId, setSavingId] = useState<string | null>(null);
  const [message, setMessage] = useState<string | null>(null);
 
- const canAssign = user?.role === "master_admin" || user?.role === "volunteer";
+ const canAssign = user?.role === "master_admin" || user?.role === "super_admin" || user?.role === "volunteer";
 
  useEffect(() => {
  let cancelled = false;
