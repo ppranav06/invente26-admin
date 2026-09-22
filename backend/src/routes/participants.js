@@ -52,6 +52,7 @@ function createParticipantsRouter({ db }) {
         limit:   req.query.limit,
         status:  req.query.status,
         college: req.query.college,
+        search:  req.query.search,
       });
 
       return res.status(200).json(data);
@@ -73,6 +74,7 @@ function createParticipantsRouter({ db }) {
       const rows    = await getAllParticipants(db, eventId, {
         status:  req.query.status,
         college: req.query.college,
+        search:  req.query.search,
       });
 
       const workbook = new ExcelJS.Workbook();

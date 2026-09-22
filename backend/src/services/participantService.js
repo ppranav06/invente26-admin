@@ -41,6 +41,11 @@ function buildFilters(filters, startIdx) {
     clauses.push(`u.college_name ILIKE $${idx++}`);
     values.push(`%${filters.college}%`);
   }
+  if (filters.search) {
+    clauses.push(`(u.name ILIKE $${idx} OR u.email ILIKE $${idx} OR u.phone ILIKE $${idx})`);
+    values.push(`%${filters.search}%`);
+    idx++;
+  }
 
   return { clauses, values };
 }

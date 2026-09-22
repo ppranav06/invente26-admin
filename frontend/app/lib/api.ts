@@ -276,13 +276,14 @@ export type Participant = {
 
 export function getParticipants(
   eventId: string,
-  options?: { page?: number; limit?: number; status?: string; college?: string },
+  options?: { page?: number; limit?: number; status?: string; college?: string; search?: string },
 ) {
   const params = new URLSearchParams();
   if (options?.page) params.set("page", String(options.page));
   if (options?.limit) params.set("limit", String(options.limit));
   if (options?.status) params.set("status", options.status);
   if (options?.college) params.set("college", options.college);
+  if (options?.search) params.set("search", options.search);
   const query = params.toString() ? `?${params.toString()}` : "";
   return request<{
     page: number;
@@ -294,11 +295,12 @@ export function getParticipants(
 
 export function exportParticipantsUrl(
   eventId: string,
-  options?: { status?: string; college?: string },
+  options?: { status?: string; college?: string; search?: string },
 ) {
   const params = new URLSearchParams();
   if (options?.status) params.set("status", options.status);
   if (options?.college) params.set("college", options.college);
+  if (options?.search) params.set("search", options.search);
   const query = params.toString() ? `?${params.toString()}` : "";
   return `${API_BASE}/events/${encodeURIComponent(eventId)}/participants/export${query}`;
 }

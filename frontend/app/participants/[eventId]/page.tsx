@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { use } from "react";
+import Link from "next/link";
 import { useAuth } from "@/app/lib/authContext";
 import {
   getParticipants,
@@ -25,36 +26,39 @@ export default function ParticipantsPage({
   const [limit] = useState(50);
   const [status, setStatus] = useState("");
   const [college, setCollege] = useState("");
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [event, setEvent] = useState<CatalogEvent | null>(null);
 
   useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const loadParticipants = useCallback(async () => {
     if (!user) return;
-    let cancelled = false;
-
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        const filters: { page: number; limit: number; status?: string; college?: string } = { page, limit };
-        if (status) filters.status = status;
-        if (college) filters.college = college;
-        const data = await getParticipants(eventId, filters);
-        if (!cancelled) {
-          setParticipants(data.rows);
-          setTotal(data.total);
-        }
-      } catch (err) {
-        if (!cancelled) setError(err instanceof ApiError ? err.message : "Failed to load participants.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+    setLoading(true);
+    setError(null);
+    try {
+      const filters: { page: number; limit: number; status?: string; college?: string; search?: string } = { page, limit };
+      if (status) filters.status = status;
+      if (college) filters.college = college;
+      if (debouncedSearch) filters.search = debouncedSearch;
+      const data = await getParticipants(eventId, filters);
+      setParticipants(data.rows);
+      setTotal(data.total);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to load participants.");
+    } finally {
+      setLoading(false);
     }
+  }, [eventId, page, limit, status, college, debouncedSearch, user]);
 
-    void load();
-    return () => { cancelled = true; };
-  }, [eventId, page, limit, status, college, user]);
+  useEffect(() => {
+    void loadParticipants();
+  }, [loadParticipants]);
 
   useEffect(() => {
     if (!user) return;
@@ -70,18 +74,34 @@ export default function ParticipantsPage({
     return () => { cancelled = true; };
   }, [user, eventId]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [status, college, debouncedSearch]);
+
   const totalPages = Math.ceil(total / limit);
 
   const handleExport = () => {
-    const url = exportParticipantsUrl(eventId, { status: status || undefined, college: college || undefined });
+    const url = exportParticipantsUrl(eventId, {
+      status: status || undefined,
+      college: college || undefined,
+      search: debouncedSearch || undefined,
+    });
     window.open(url, "_blank");
   };
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-6">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600">Participants</p>
-        <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950">
+        <Link
+          href="/analytics"
+          className="mb-3 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition hover:text-indigo-600"
+        >
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+          </svg>
+          Back to Analytics
+        </Link>
+        <h1 className="text-2xl font-black tracking-tight text-slate-950">
           {event ? event.name : "Event Participants"}
         </h1>
         {event && (
@@ -93,16 +113,28 @@ export default function ParticipantsPage({
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+            </svg>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, email, or phone…"
+              className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 sm:w-72"
+            />
+          </div>
           <input
             type="text"
             value={college}
-            onChange={(e) => { setCollege(e.target.value); setPage(1); }}
+            onChange={(e) => setCollege(e.target.value)}
             placeholder="Filter by college…"
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 sm:w-56"
           />
           <select
             value={status}
-            onChange={(e) => { setStatus(e.target.value); setPage(1); }}
+            onChange={(e) => setStatus(e.target.value)}
             className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
           >
             <option value="">All payment statuses</option>

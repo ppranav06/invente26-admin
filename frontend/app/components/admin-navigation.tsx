@@ -9,7 +9,6 @@ const ALL_LINKS = [
   { href: "/scan", label: "Scan", allowedRoles: ["master_admin", "super_admin", "dept_admin", "event_admin", "volunteer"] },
   { href: "/events", label: "Events", allowedRoles: ["master_admin", "super_admin", "dept_admin", "event_admin", "volunteer"] },
   { href: "/analytics", label: "Analytics", allowedRoles: ["master_admin", "super_admin", "dept_admin", "event_admin"] },
-  { href: "/participants", label: "Participants", allowedRoles: ["master_admin", "super_admin", "dept_admin", "event_admin"] },
   { href: "/admin/users", label: "Users", allowedRoles: ["master_admin"] },
 ];
 
