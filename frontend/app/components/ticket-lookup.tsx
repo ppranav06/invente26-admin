@@ -9,9 +9,11 @@ import QrScanner from "./qr-scanner";
 type Props = {
  onLoaded: (ticket: TicketResponse) => void;
  onLoadingChange?: (loading: boolean) => void;
+ brightness?: number;
+ zoom?: number;
 };
 
-export default function TicketLookup({ onLoaded, onLoadingChange }: Props) {
+export default function TicketLookup({ onLoaded, onLoadingChange, brightness, zoom }: Props) {
  const [manualId, setManualId] = useState("");
  const [loading, setLoading] = useState(false);
  const [error, setError] = useState<string | null>(null);
@@ -57,7 +59,7 @@ export default function TicketLookup({ onLoaded, onLoadingChange }: Props) {
   <p className="mt-1 text-sm leading-6 text-slate-500">Scanning loads every event linked to the ticket. Choose the event you want to update.</p>
   </div>
 
-  <QrScanner onDecoded={loadTicket} disabled={loading} />
+   <QrScanner onDecoded={loadTicket} disabled={loading} brightness={brightness} zoom={zoom} />
 
   <div className="relative flex items-center gap-3 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
   <span className="h-px flex-1 bg-slate-200" />

@@ -7,7 +7,7 @@ import { useAuth } from "@/app/lib/authContext";
 const ALL_LINKS = [
  { href: "/", label: "Home", allowedRoles: ["master_admin", "super_admin", "dept_admin", "event_admin", "volunteer"] },
  { href: "/scan", label: "Scan", allowedRoles: ["master_admin", "super_admin", "dept_admin", "event_admin"] },
- { href: "/events", label: "Events", allowedRoles: ["master_admin", "super_admin", "dept_admin", "volunteer"] },
+ { href: "/events", label: "Events", allowedRoles: ["master_admin", "super_admin", "volunteer"] },
  { href: "/analytics", label: "Analytics", allowedRoles: ["master_admin", "super_admin", "dept_admin", "event_admin"] },
  { href: "/admin/users", label: "Users", allowedRoles: ["master_admin"] },
 ];

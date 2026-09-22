@@ -10,7 +10,7 @@ import {
 } from "react";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut as firebaseSignOut, type User as FirebaseUser } from "firebase/auth";
 import { auth } from "./firebase";
-import { apiLogin, apiLoginLocal, apiRefresh, apiLogout, getAccessToken, getRefreshToken, setTokens, clearTokens } from "./api";
+import { apiLogin, apiLoginLocal, apiRefresh, apiLogout, getAccessToken, getRefreshToken, setTokens, clearTokens, ApiError } from "./api";
 
 export type AdminUser = {
  user_id: string;
@@ -93,34 +93,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
  [],
  );
 
- const signIn = useCallback(
- async (email: string, password: string) => {
-  // Try master admin local login first
-  try {
-  const data = await apiLoginLocal(email, password);
-  setTokens(data.access_token, data.refresh_token);
-  scheduleRefresh(data.access_token);
-  setUser(data.user);
-  return;
-  } catch (localErr) {
-  // If it's NOT a "MISSING_CREDENTIALS" or "LOCAL_LOGIN_DISABLED" error,
-  // it means the credentials were wrong — still try Firebase as fallback.
-  // Only skip Firebase if local login is disabled entirely.
-  if (localErr instanceof Error && "code" in localErr && (localErr as { code?: string }).code === "LOCAL_LOGIN_DISABLED") {
-   throw localErr;
-  }
-  }
+  const signIn = useCallback(
+   async (email: string, password: string) => {
+    // Try master admin local login first
+    try {
+     const data = await apiLoginLocal(email, password);
+     setTokens(data.access_token, data.refresh_token);
+     scheduleRefresh(data.access_token);
+     setUser(data.user);
+     return;
+    } catch (localErr: unknown) {
+     // If local login returned 400 (MISSING_CREDENTIALS), it means the
+     // backend doesn't support local login for this user — try Firebase.
+     // Any other error (wrong password, etc.) should not fall through.
+     if (!(localErr instanceof ApiError && localErr.status === 400)) {
+      throw localErr;
+     }
+    }
 
-  // Fall back to Firebase authentication
-  const credential = await signInWithEmailAndPassword(auth, email, password);
-  const idToken = await credential.user.getIdToken();
-  const data = await apiLogin(idToken);
-  setTokens(data.access_token, data.refresh_token);
-  scheduleRefresh(data.access_token);
-  setUser(data.user);
- },
- [scheduleRefresh],
- );
+    // Fall back to Firebase authentication
+    const credential = await signInWithEmailAndPassword(auth, email, password);
+    const idToken = await credential.user.getIdToken();
+    const data = await apiLogin(idToken);
+    setTokens(data.access_token, data.refresh_token);
+    scheduleRefresh(data.access_token);
+    setUser(data.user);
+   },
+   [scheduleRefresh],
+  );
 
  const logout = useCallback(async () => {
  try {

@@ -65,7 +65,7 @@ const TILES: Tile[] = [
     label: "Events",
     description: "View and manage event assignments",
     icon: <EventsIcon />,
-    allowedRoles: [ROLE.MASTER_ADMIN, ROLE.SUPER_ADMIN, ROLE.DEPT_ADMIN, ROLE.VOLUNTEER],
+    allowedRoles: [ROLE.MASTER_ADMIN, ROLE.SUPER_ADMIN, ROLE.VOLUNTEER],
  },
  {
  href: "/analytics",
