@@ -7,8 +7,10 @@ import {
  createAdminUser,
  updateAdminUser,
  deleteAdminUser,
+ fetchEvents,
  ApiError,
  type AdminUserType,
+ type ExternalEvent,
 } from "@/app/lib/api";
 
 const ROLES = ["master_admin", "super_admin", "dept_admin", "event_admin", "volunteer"];
@@ -46,6 +48,7 @@ export default function AdminUsersPage() {
  const [saving, setSaving] = useState(false);
  const [formError, setFormError] = useState<string | null>(null);
  const [createdResetLink, setCreatedResetLink] = useState<string | null>(null);
+ const [events, setEvents] = useState<ExternalEvent[]>([]);
 
  useEffect(() => {
  if (user?.role !== "master_admin") return;
@@ -55,8 +58,11 @@ export default function AdminUsersPage() {
   setLoading(true);
   setError(null);
   try {
-  const data = await listAdminUsers();
-  if (!cancelled) setUsers(data.rows);
+  const [userData, eventsData] = await Promise.all([listAdminUsers(), fetchEvents()]);
+  if (!cancelled) {
+   setUsers(userData.rows);
+   setEvents(eventsData);
+  }
   } catch (err) {
   if (!cancelled) setError(err instanceof ApiError ? err.message : "Failed to load users.");
   } finally {
@@ -194,14 +200,14 @@ export default function AdminUsersPage() {
    <div className="overflow-x-auto">
    <table className="w-full text-left text-sm">
     <thead>
-    <tr className="border-b border-slate-100 text-xs font-bold uppercase tracking-wider text-slate-500">
-     <th className="px-5 py-3">Email</th>
-     <th className="px-5 py-3">Role</th>
-     <th className="px-5 py-3">Event ID</th>
-     <th className="px-5 py-3">Dept</th>
-     <th className="px-5 py-3">User ID</th>
-     <th className="px-5 py-3" />
-    </tr>
+     <tr className="border-b border-slate-100 text-xs font-bold uppercase tracking-wider text-slate-500">
+      <th className="px-5 py-3">Email</th>
+      <th className="px-5 py-3">Role</th>
+      <th className="px-5 py-3">Event</th>
+      <th className="px-5 py-3">Dept</th>
+      <th className="px-5 py-3">User ID</th>
+      <th className="px-5 py-3" />
+     </tr>
     </thead>
     <tbody>
     {users.length === 0 && (
@@ -219,7 +225,7 @@ export default function AdminUsersPage() {
       {roleLabel(u.role)}
       </span>
      </td>
-     <td className="px-5 py-3 font-mono text-xs text-slate-500">{u.event_id || "—"}</td>
+      <td className="px-5 py-3 font-mono text-xs text-slate-500">{events.find((e) => e.event_id === u.event_id)?.name || "—"}</td>
      <td className="px-5 py-3 text-slate-600">{u.dept_name || "—"}</td>
      <td className="px-5 py-3 font-mono text-xs text-slate-400 max-w-[120px] truncate">{u.user_id}</td>
      <td className="px-5 py-3">
@@ -320,13 +326,17 @@ export default function AdminUsersPage() {
      </div>
      {form.role === "event_admin" && (
      <div>
-      <label className="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Event ID</label>
-      <input
-      value={form.event_id}
-      onChange={(e) => setForm({ ...form, event_id: e.target.value })}
-      className="w-full border border-slate-200 bg-white px-4 py-3 font-mono text-sm text-slate-800 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
-      placeholder="Event UUID"
-      />
+      <label className="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Event</label>
+      <select
+       value={form.event_id}
+       onChange={(e) => setForm({ ...form, event_id: e.target.value })}
+       className="w-full border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+      >
+       <option value="">Select an event</option>
+       {events.map((ev) => (
+        <option key={ev.event_id} value={ev.event_id}>{ev.name} ({ev.event_type})</option>
+       ))}
+      </select>
      </div>
      )}
      {form.role === "dept_admin" && (

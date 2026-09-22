@@ -350,3 +350,18 @@ export function deleteAdminUser(userId: string) {
     method: "DELETE",
   });
 }
+
+export type ExternalEvent = {
+  event_id: string;
+  name: string;
+  event_type: string;
+  date: string;
+};
+
+export async function fetchEvents(): Promise<ExternalEvent[]> {
+  const res = await fetch("https://inventeapi.buildapp.in/api/v1/events", {
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error("Failed to load events");
+  return res.json();
+}

@@ -7,9 +7,9 @@ const logger = require('./logger');
 
 /**
  * Sign an RS256 access token.
- * Payload shape: { sub, email, role, eventId?, deptName? }
+ * Payload shape: { sub, email, role, event_id?, dept_name? }
  *
- * @param {{ userId: string, email: string, role: string, eventId?: string|null, deptName?: string|null }} user
+ * @param {{ userId: string, email: string, role: string, event_id?: string|null, dept_name?: string|null }} user
  * @returns {string}
  */
 function signAccessToken(user) {
@@ -18,8 +18,8 @@ function signAccessToken(user) {
     sub: user.userId,
     email: user.email,
     role: user.role,
-    ...(user.eventId  ? { event_id:  user.eventId  } : {}),
-    ...(user.deptName ? { dept_name: user.deptName } : {}),
+    ...(user.event_id  ? { event_id:  user.event_id  } : {}),
+    ...(user.dept_name ? { dept_name: user.dept_name } : {}),
   };
   return jwt.sign(payload, config.jwtPrivateKey, {
     algorithm: 'RS256',

@@ -48,7 +48,7 @@ function createAnalyticsRouter({ db }) {
 
       if (user.role === 'dept_admin') {
         // Ignore query param — always use the scope from the JWT
-        deptName = user.deptName;
+        deptName = user.dept_name;
       }
 
       const data = await getDeptAnalytics(db, deptName);
@@ -71,9 +71,9 @@ function createAnalyticsRouter({ db }) {
       const filters = {};
 
       if (user.role === 'dept_admin') {
-        filters.deptName = user.deptName;
+        filters.deptName = user.dept_name;
       } else if (user.role === 'event_admin') {
-        filters.eventId = user.eventId;
+        filters.eventId = user.event_id;
       } else if (req.query.dept) {
         filters.deptName = req.query.dept;
       }

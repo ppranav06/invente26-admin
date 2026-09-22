@@ -28,11 +28,11 @@ function authn(req, res, next) {
     }
 
     req.adminUser = {
-      userId:   payload.sub,
-      email:    payload.email,
-      role:     payload.role,
-      eventId:  payload.event_id  || null,
-      deptName: payload.dept_name || null,
+      userId:    payload.sub,
+      email:     payload.email,
+      role:      payload.role,
+      event_id:  payload.event_id  || null,
+      dept_name: payload.dept_name || null,
     };
 
     next();

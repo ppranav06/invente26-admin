@@ -31,12 +31,12 @@ function authz(allowedRoles) {
  *
  * Call this inside route handlers where scope matters.
  *
- * @param {{ role: string, eventId: string|null }} adminUser - from req.adminUser
+ * @param {{ role: string, event_id: string|null }} adminUser - from req.adminUser
  * @param {string} eventId - the event being accessed
  * @throws {HttpError} 403 if out of scope
  */
 function assertEventScope(adminUser, eventId) {
-  if (adminUser.role === 'event_admin' && adminUser.eventId !== eventId) {
+  if (adminUser.role === 'event_admin' && adminUser.event_id !== eventId) {
     throw new HttpError(403, 'you do not have access to this event', 'EVENT_SCOPE_VIOLATION');
   }
 }
@@ -45,12 +45,12 @@ function assertEventScope(adminUser, eventId) {
  * Assert that a dept_admin is acting within their assigned department.
  * master_admin and super_admin pass through unconditionally.
  *
- * @param {{ role: string, deptName: string|null }} adminUser - from req.adminUser
+ * @param {{ role: string, dept_name: string|null }} adminUser - from req.adminUser
  * @param {string} deptName - the dept being accessed
  * @throws {HttpError} 403 if out of scope
  */
 function assertDeptScope(adminUser, deptName) {
-  if (adminUser.role === 'dept_admin' && adminUser.deptName !== deptName) {
+  if (adminUser.role === 'dept_admin' && adminUser.dept_name !== deptName) {
     throw new HttpError(403, 'you do not have access to this department', 'DEPT_SCOPE_VIOLATION');
   }
 }

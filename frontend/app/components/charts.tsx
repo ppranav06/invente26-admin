@@ -66,54 +66,57 @@ function DonutChart({
 function GroupedBarChart({
  data,
 }: {
- data: Array<{ label: string; registered: number; attended: number }>;
+ data: Array<{ label: string; registered: number; attended: number; color?: string }>;
 }) {
  const max = Math.max(...data.map((d) => Math.max(d.registered, d.attended)), 1);
 
  return (
- <div className="space-y-4">
-  {data.map((item) => (
-  <div key={item.label}>
-   <p className="mb-2 text-xs font-semibold text-slate-600">{item.label}</p>
-   <div className="space-y-1.5">
-   <div className="flex items-center gap-3">
-    <span className="w-16 text-right text-[11px] font-medium text-slate-400">Reg</span>
-    <div className="h-3 flex-1 overflow-hidden bg-slate-100">
-    <div
-     className="h-full bg-indigo-500 transition-all duration-500"
-     style={{ width: `${max > 0 ? (item.registered / max) * 100 : 0}%` }}
-    />
+  <div className="space-y-4">
+   {data.map((item) => (
+   <div key={item.label}>
+    <p className="mb-2 text-xs font-semibold text-slate-600">
+     {item.color && <span className="mr-1.5 inline-block h-2 w-2 align-middle" style={{ backgroundColor: item.color }} />}
+     {item.label}
+    </p>
+    <div className="space-y-1.5">
+    <div className="flex items-center gap-3">
+     <span className="w-16 text-right text-[11px] font-medium text-slate-400">Reg</span>
+     <div className="h-3 flex-1 overflow-hidden bg-slate-100">
+     <div
+      className="h-full transition-all duration-500"
+      style={{ width: `${max > 0 ? (item.registered / max) * 100 : 0}%`, backgroundColor: item.color || "#6366f1" }}
+     />
+     </div>
+     <span className="w-8 text-right text-[11px] font-bold tabular-nums text-slate-950">
+     {item.registered}
+     </span>
     </div>
-    <span className="w-8 text-right text-[11px] font-bold tabular-nums text-slate-950">
-    {item.registered}
-    </span>
-   </div>
-   <div className="flex items-center gap-3">
-    <span className="w-16 text-right text-[11px] font-medium text-slate-400">Attended</span>
-    <div className="h-3 flex-1 overflow-hidden bg-slate-100">
-    <div
-     className="h-full bg-emerald-500 transition-all duration-500"
-     style={{ width: `${max > 0 ? (item.attended / max) * 100 : 0}%` }}
-    />
+    <div className="flex items-center gap-3">
+     <span className="w-16 text-right text-[11px] font-medium text-slate-400">Attended</span>
+     <div className="h-3 flex-1 overflow-hidden bg-slate-100">
+     <div
+      className="h-full bg-emerald-500 transition-all duration-500"
+      style={{ width: `${max > 0 ? (item.attended / max) * 100 : 0}%` }}
+     />
+     </div>
+     <span className="w-8 text-right text-[11px] font-bold tabular-nums text-slate-950">
+     {item.attended}
+     </span>
     </div>
-    <span className="w-8 text-right text-[11px] font-bold tabular-nums text-slate-950">
-    {item.attended}
-    </span>
+    </div>
+   </div>
+   ))}
+   <div className="flex items-center gap-5 pt-2">
+   <div className="flex items-center gap-1.5">
+    <span className="inline-block h-3 w-3 bg-indigo-500" />
+    <span className="text-[11px] font-semibold text-slate-500">Registered</span>
+   </div>
+   <div className="flex items-center gap-1.5">
+    <span className="inline-block h-3 w-3 bg-emerald-500" />
+    <span className="text-[11px] font-semibold text-slate-500">Attended</span>
    </div>
    </div>
   </div>
-  ))}
-  <div className="flex items-center gap-5 pt-2">
-  <div className="flex items-center gap-1.5">
-   <span className="inline-block h-3 w-3 bg-indigo-500" />
-   <span className="text-[11px] font-semibold text-slate-500">Registered</span>
-  </div>
-  <div className="flex items-center gap-1.5">
-   <span className="inline-block h-3 w-3 bg-emerald-500" />
-   <span className="text-[11px] font-semibold text-slate-500">Attended</span>
-  </div>
-  </div>
- </div>
  );
 }
 
