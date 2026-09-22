@@ -102,17 +102,21 @@ export default function Home() {
  const visibleTiles = TILES.filter((tile) => tile.allowedRoles.includes(user.role));
 
  return (
- <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-  <div className="mb-10">
-  <h1 className="text-3xl font-extrabold tracking-tight text-slate-950">
-   Dashboard
-  </h1>
-  <p className="mt-2 text-sm text-slate-500">
-   Signed in as{" "}
-   <span className="font-semibold text-slate-700">{user.email}</span>
-   <span className="mx-1.5 text-slate-300">|</span>
-   <span className="font-semibold text-indigo-600">{roleLabel(user.role)}</span>
-  </p>
+  <main className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+  <div className="mb-10 flex items-center gap-5">
+   <img src="/invente-lgp.png" alt="Invente'26" className="h-16 w-auto shrink-0" />
+   <div className="h-14 w-px bg-stone-200" />
+   <div>
+    <h1 className="text-3xl font-extrabold tracking-tight text-slate-950">
+     Dashboard
+    </h1>
+    <p className="mt-2 text-sm text-slate-500">
+     Signed in as{" "}
+     <span className="font-semibold text-slate-700">{user.email}</span>
+     <span className="mx-1.5 text-slate-300">|</span>
+     <span className="font-semibold text-indigo-600">{roleLabel(user.role)}</span>
+    </p>
+   </div>
   </div>
 
   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
