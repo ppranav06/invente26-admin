@@ -80,3 +80,7 @@ export type AssignmentResponse = {
     attendance_timestamp: string | null;
   };
 };
+
+export type AddEventResponse = {
+  event: TicketEvent;
+};

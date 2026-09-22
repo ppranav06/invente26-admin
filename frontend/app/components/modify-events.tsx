@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ApiError, getEvents, replaceTicketEvent } from "../lib/api";
+import { addTicketEvent, ApiError, getEvents, replaceTicketEvent } from "../lib/api";
 import { compatibleEventType } from "../lib/ticket";
 import type { CatalogEvent, TicketEvent, TicketResponse } from "../lib/types";
 import { useAuth } from "../lib/authContext";
@@ -23,9 +23,11 @@ export default function ModifyEvents() {
  const [catalogError, setCatalogError] = useState<string | null>(null);
  const [pending, setPending] = useState<Record<string, string>>({});
  const [savingId, setSavingId] = useState<string | null>(null);
+ const [newEventId, setNewEventId] = useState("");
+ const [adding, setAdding] = useState(false);
  const [message, setMessage] = useState<string | null>(null);
 
- const canAssign = user?.role === "master_admin" || user?.role === "super_admin" || user?.role === "volunteer";
+ const canAssign = user?.role === "master_admin" || user?.role === "volunteer";
 
  useEffect(() => {
  let cancelled = false;
@@ -47,10 +49,13 @@ export default function ModifyEvents() {
  const onLoaded = useCallback((nextData: TicketResponse) => {
  setData(nextData);
  setPending({});
+ setNewEventId("");
  setMessage(null);
  }, []);
 
  const assignedIds = useMemo(() => new Set(data?.events.map((event) => event.event_id) || []), [data]);
+ const isTechPass = data?.ticket.ticket_type.toUpperCase() === "TECHPASS";
+ const addOptions = useMemo(() => catalog.filter((event) => event.event_type.toUpperCase() === "TECH" && !assignedIds.has(event.event_id)), [assignedIds, catalog]);
 
  const handleSave = async (currentEvent: TicketEvent) => {
  if (!data) return;
@@ -78,7 +83,29 @@ export default function ModifyEvents() {
  } catch (error) {
   setMessage(error instanceof ApiError ? error.message : "Event assignment could not be updated.");
  } finally {
-  setSavingId(null);
+ setSavingId(null);
+ }
+ };
+
+ const handleAdd = async () => {
+ if (!data || !newEventId || adding) return;
+
+ setAdding(true);
+ setMessage(null);
+ try {
+  const result = await addTicketEvent(data.ticket.ticket_id, newEventId);
+  setData((current) => current
+  ? {
+   ...current,
+   events: [...current.events, result.event].sort((left, right) => left.position - right.position),
+  }
+  : current);
+  setNewEventId("");
+  setMessage("Event added to the ticket successfully.");
+ } catch (error) {
+  setMessage(error instanceof ApiError ? error.message : "Event could not be added to the ticket.");
+ } finally {
+  setAdding(false);
  }
  };
 
@@ -86,14 +113,14 @@ export default function ModifyEvents() {
  <main className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] lg:px-8 lg:py-8">
   <section className="panel p-5 sm:p-6">
   <TicketLookup onLoaded={onLoaded} />
-  <div className="mt-6 bg-amber-50 p-4 text-sm leading-6 text-amber-800"><strong>Safety rule:</strong> attended events cannot be replaced, and a ticket cannot contain the same event twice.</div>
+  <div className="mt-6 bg-amber-50 p-4 text-sm leading-6 text-amber-800"><strong>Safety rule:</strong> attended events cannot be replaced, a ticket cannot contain the same event twice, and a TECHPASS can have at most four events.</div>
   </section>
 
   <section className="panel min-h-[32rem] overflow-hidden">
   <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
    <p className="text-xs font-bold uppercase tracking-[0.16em] text-amber-600">Event assignments</p>
    <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950">Modify ticket events</h1>
-   <p className="mt-2 text-sm leading-6 text-slate-500">Replace only un-attended events. The ticket stays loaded while each change is saved independently.</p>
+   <p className="mt-2 text-sm leading-6 text-slate-500">Replace only un-attended events, or add an unassigned technical event to an incomplete TECHPASS.</p>
   </div>
 
   {message && <div className="mx-5 mt-5 border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-medium text-indigo-800 sm:mx-6" role="status">{message}</div>}
@@ -126,9 +153,33 @@ export default function ModifyEvents() {
       </div>
       )}
      </div>
-     </article>
+    </article>
     );
     })}
+    {canAssign && isTechPass && (
+     <section className="border border-indigo-200 bg-indigo-50/60 p-4 sm:p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+       <div>
+        <div className="flex flex-wrap items-center gap-2">
+         <span className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600">Add event</span>
+         <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-indigo-700">{data.events.length}/4 assigned</span>
+        </div>
+        {data.events.length >= 4
+         ? <p className="mt-2 text-sm text-slate-600">This TECHPASS already has the maximum four events.</p>
+         : <p className="mt-2 text-sm text-slate-600">Choose an unassigned technical event to fill the next available slot.</p>}
+       </div>
+       {data.events.length < 4 && (
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row lg:w-[28rem]">
+         <select value={newEventId} onChange={(change) => setNewEventId(change.target.value)} disabled={catalogLoading || adding} className="min-w-0 flex-1 border border-indigo-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100">
+          <option value="">{catalogLoading ? "Loading events…" : addOptions.length ? "Choose technical event" : "No unassigned technical events"}</option>
+          {addOptions.map((option) => <option key={option.event_id} value={option.event_id}>{option.name} · {option.dept_name}</option>)}
+         </select>
+         <button type="button" onClick={() => void handleAdd()} disabled={!newEventId || adding || catalogLoading} className="bg-indigo-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300">{adding ? "Adding…" : "Add event"}</button>
+        </div>
+       )}
+      </div>
+     </section>
+    )}
    </div>
    </>
   )}

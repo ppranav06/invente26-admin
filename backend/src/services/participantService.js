@@ -25,7 +25,7 @@ const PARTICIPANT_BASE_SELECT = `
 /**
  * Build WHERE clause additions + parameter list from optional filter args.
  *
- * @param {{ status?: string, college?: string }} filters
+ * @param {{ status?: string, college?: string, search?: string }} filters
  * @param {number} startIdx - next $N index
  */
 function buildFilters(filters, startIdx) {
@@ -33,17 +33,26 @@ function buildFilters(filters, startIdx) {
   const values = [];
   let idx = startIdx;
 
+  const normalizeTerm = (value) => {
+    if (typeof value !== 'string') return '';
+    const term = value.trim().slice(0, 100);
+    return term.length >= 2 ? term : '';
+  };
+
+  const college = normalizeTerm(filters.college);
+  const search = normalizeTerm(filters.search);
+
   if (filters.status) {
     clauses.push(`tp.status = $${idx++}`);
     values.push(filters.status);
   }
-  if (filters.college) {
+  if (college) {
     clauses.push(`u.college_name ILIKE $${idx++}`);
-    values.push(`%${filters.college}%`);
+    values.push(`%${college}%`);
   }
-  if (filters.search) {
+  if (search) {
     clauses.push(`(u.name ILIKE $${idx} OR u.email ILIKE $${idx} OR u.phone ILIKE $${idx})`);
-    values.push(`%${filters.search}%`);
+    values.push(`%${search}%`);
     idx++;
   }
 
@@ -55,7 +64,7 @@ function buildFilters(filters, startIdx) {
  *
  * @param {object} db
  * @param {string} eventId
- * @param {{ page?: number, limit?: number, status?: string, college?: string }} options
+ * @param {{ page?: number, limit?: number, status?: string, college?: string, search?: string }} options
  */
 async function getParticipants(db, eventId, options = {}) {
   const page  = Math.max(1, Number(options.page)  || 1);
@@ -97,7 +106,7 @@ async function getParticipants(db, eventId, options = {}) {
  *
  * @param {object} db
  * @param {string} eventId
- * @param {{ status?: string, college?: string }} filters
+ * @param {{ status?: string, college?: string, search?: string }} filters
  */
 async function getAllParticipants(db, eventId, filters = {}) {
   const { clauses, values } = buildFilters(filters, 2);
@@ -110,5 +119,4 @@ async function getAllParticipants(db, eventId, filters = {}) {
   return result.rows;
 }
 
-module.exports = { getParticipants, getAllParticipants };
-
+module.exports = { buildFilters, getParticipants, getAllParticipants };

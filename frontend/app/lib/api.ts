@@ -1,4 +1,5 @@
 import type {
+  AddEventResponse,
   AssignmentResponse,
   AttendanceResponse,
   CatalogEvent,
@@ -181,6 +182,10 @@ export function getTicket(ticketId: string) {
   return request<TicketResponse>(`/scan/${encodeURIComponent(ticketId)}`);
 }
 
+export function searchTicketsByEmail(email: string) {
+  return request<{ rows: TicketResponse[] }>(`/scan/search?email=${encodeURIComponent(email)}`);
+}
+
 export function getEvents() {
   return request<{ rows: CatalogEvent[] }>("/events");
 }
@@ -196,6 +201,13 @@ export function replaceTicketEvent(ticketId: string, currentEventId: string, eve
   return request<AssignmentResponse>(`/scan/${encodeURIComponent(ticketId)}/assign`, {
     method: "POST",
     body: JSON.stringify({ current_event_id: currentEventId, event_id: eventId }),
+  });
+}
+
+export function addTicketEvent(ticketId: string, eventId: string) {
+  return request<AddEventResponse>(`/scan/${encodeURIComponent(ticketId)}/add-event`, {
+    method: "POST",
+    body: JSON.stringify({ event_id: eventId }),
   });
 }
 
@@ -290,6 +302,7 @@ export function getParticipants(
     limit: number;
     total: number;
     rows: Participant[];
+    event: CatalogEvent;
   }>(`/events/${encodeURIComponent(eventId)}/participants${query}`);
 }
 

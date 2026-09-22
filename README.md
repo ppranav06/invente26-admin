@@ -18,7 +18,9 @@ Copy `backend/.env.example` to `backend/.env` and set `DATABASE_URL` with the ru
 The live schema already indexes ticket IDs, ticket-event relationships, and
 hackathon registrations. If `hackathon_members(team_id)` is not indexed in a
 deployment, run `backend/sql/001_performance_indexes.sql` once as a database
-maintenance operation.
+maintenance operation. For email lookup and participant substring search,
+also run `backend/sql/002_search_indexes.sql` once as a database maintenance
+operation.
 
 ## Local development
 

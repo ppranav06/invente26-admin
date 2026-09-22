@@ -19,17 +19,17 @@ function DonutChart({
  const cx = size / 2;
  const cy = size / 2;
 
- let accumulated = 0;
-
  return (
  <div className="relative inline-flex items-center justify-center">
   <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
   <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#f1f5f9" strokeWidth={thickness} />
-  {segments.map((seg) => {
+  {segments.map((seg, index) => {
    const pct = total > 0 ? seg.value / total : 0;
    const dashLen = pct * circumference;
+   const accumulated = segments
+    .slice(0, index)
+    .reduce((sum, previous) => sum + (total > 0 ? previous.value / total : 0), 0);
    const dashOffset = -accumulated * circumference;
-   accumulated += pct;
    return (
    <circle
     key={seg.label}
