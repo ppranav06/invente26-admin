@@ -293,16 +293,32 @@ export function getParticipants(
   }>(`/events/${encodeURIComponent(eventId)}/participants${query}`);
 }
 
-export function exportParticipantsUrl(
+export async function exportParticipants(
   eventId: string,
   options?: { status?: string; college?: string; search?: string },
-) {
+): Promise<Blob> {
   const params = new URLSearchParams();
   if (options?.status) params.set("status", options.status);
   if (options?.college) params.set("college", options.college);
   if (options?.search) params.set("search", options.search);
   const query = params.toString() ? `?${params.toString()}` : "";
-  return `${API_BASE}/events/${encodeURIComponent(eventId)}/participants/export${query}`;
+  const path = `/events/${encodeURIComponent(eventId)}/participants/export${query}`;
+
+  const accessToken = getAccessToken();
+  const headers: Record<string, string> = {};
+  if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
+
+  const response = await fetch(`${API_BASE}${path}`, {
+    cache: "no-store",
+    headers,
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { error?: string; code?: string } | null;
+    throw new ApiError(body?.error || "Export failed.", response.status, body?.code);
+  }
+
+  return response.blob();
 }
 
 export type AdminUserType = {

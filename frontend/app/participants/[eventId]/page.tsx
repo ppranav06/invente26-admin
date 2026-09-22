@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/app/lib/authContext";
 import {
  getParticipants,
- exportParticipantsUrl,
+ exportParticipants,
  getEvents,
  ApiError,
  type Participant,
@@ -30,6 +30,7 @@ export default function ParticipantsPage({
  const [debouncedSearch, setDebouncedSearch] = useState("");
  const [loading, setLoading] = useState(true);
  const [error, setError] = useState<string | null>(null);
+ const [exporting, setExporting] = useState(false);
  const [event, setEvent] = useState<CatalogEvent | null>(null);
 
  useEffect(() => {
@@ -80,13 +81,27 @@ export default function ParticipantsPage({
 
  const totalPages = Math.ceil(total / limit);
 
- const handleExport = () => {
- const url = exportParticipantsUrl(eventId, {
-  status: status || undefined,
-  college: college || undefined,
-  search: debouncedSearch || undefined,
- });
- window.open(url, "_blank");
+ const handleExport = async () => {
+  setExporting(true);
+  try {
+   const blob = await exportParticipants(eventId, {
+    status: status || undefined,
+    college: college || undefined,
+    search: debouncedSearch || undefined,
+   });
+   const url = URL.createObjectURL(blob);
+   const a = document.createElement("a");
+   a.href = url;
+   a.download = `participants_${event?.name?.replace(/[^a-z0-9]/gi, "_") || eventId}.xlsx`;
+   document.body.appendChild(a);
+   a.click();
+   document.body.removeChild(a);
+   URL.revokeObjectURL(url);
+  } catch (err) {
+   alert(err instanceof ApiError ? err.message : "Export failed.");
+  } finally {
+   setExporting(false);
+  }
  };
 
  return (
@@ -143,13 +158,14 @@ export default function ParticipantsPage({
    <option value="Rejected">Rejected</option>
    </select>
   </div>
-  <button
-   type="button"
-   onClick={handleExport}
-   className="self-start bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700"
-  >
-   Export to Excel
-  </button>
+   <button
+    type="button"
+    onClick={() => void handleExport()}
+    disabled={exporting}
+    className="self-start bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+   >
+    {exporting ? "Exporting…" : "Export to Excel"}
+   </button>
   </div>
 
   {loading && (

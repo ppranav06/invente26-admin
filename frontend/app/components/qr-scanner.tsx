@@ -120,12 +120,12 @@ export default function QrScanner({ onDecoded, disabled = false, brightness = 1,
  window.setTimeout(() => setScanning(true), 150);
  };
 
- return (
- <div className="space-y-4">
-   <div className="relative overflow-hidden bg-slate-950 shadow-inner" style={{ filter: `brightness(${brightness})` }}>
-    <div style={{ transform: `scale(${zoom})`, transformOrigin: "center" }}>
-    <div id={readerId} className="qr-reader min-h-72 w-full sm:min-h-96" />
-    </div>
+  return (
+  <div className="space-y-4">
+    <div className="relative h-72 overflow-hidden bg-slate-950 shadow-inner sm:h-96" style={{ filter: `brightness(${brightness})` }}>
+     <div className="absolute inset-0" style={{ transform: `scale(${zoom})`, transformOrigin: "center" }}>
+     <div id={readerId} className="qr-reader h-full w-full" />
+     </div>
    {(!scanning || status || error || disabled) && (
     <div className="absolute inset-0 grid place-items-center bg-slate-950/85 p-6 text-center text-white">
     <div>
