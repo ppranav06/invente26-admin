@@ -15,9 +15,9 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!loading && !user && !isPublic) {
-      router.replace("/login");
+      router.replace(`/login?from=${encodeURIComponent(pathname)}`);
     }
-  }, [loading, user, isPublic, router]);
+  }, [loading, user, isPublic, pathname, router]);
 
   if (loading) {
     return (

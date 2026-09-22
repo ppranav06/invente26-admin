@@ -154,19 +154,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (cancelled) return;
 
-      if (!firebaseUser) {
-        clearTokens();
-        stopRefreshTimer();
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-
+      // Always try to restore from stored tokens first (works for both
+      // Firebase and master-admin-local login, which has no Firebase user).
       const accessToken = getAccessToken();
       if (accessToken) {
         try {
           await fetchMe(accessToken);
           scheduleRefresh(accessToken);
+          setLoading(false);
+          return;
         } catch {
           const refreshToken = getRefreshToken();
           if (refreshToken) {
@@ -175,28 +171,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setTokens(data.access_token, refreshToken);
               await fetchMe(data.access_token);
               scheduleRefresh(data.access_token);
+              setLoading(false);
+              return;
             } catch {
-              clearTokens();
-              setUser(null);
+              // tokens invalid — fall through
             }
-          } else {
-            clearTokens();
-            setUser(null);
           }
         }
-      } else {
-        const refreshToken = getRefreshToken();
-        if (refreshToken) {
-          try {
-            const data = await apiRefresh(refreshToken);
-            setTokens(data.access_token, refreshToken);
-            await fetchMe(data.access_token);
-            scheduleRefresh(data.access_token);
-          } catch {
-            clearTokens();
-            setUser(null);
-          }
-        }
+      }
+
+      // If we have a Firebase user but no valid tokens, something went wrong.
+      // If we have no Firebase user AND no valid tokens, the user is logged out.
+      if (!firebaseUser) {
+        clearTokens();
+        stopRefreshTimer();
+        setUser(null);
       }
 
       setLoading(false);

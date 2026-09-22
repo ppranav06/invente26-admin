@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/app/lib/authContext";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/app/lib/firebase";
@@ -11,6 +11,8 @@ import { ApiError } from "@/app/lib/api";
 export default function LoginPage() {
   const { signIn } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("from") || "/";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -24,7 +26,7 @@ export default function LoginPage() {
     setError(null);
     try {
       await signIn(email, password);
-      router.push("/");
+      router.push(redirectTo);
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
