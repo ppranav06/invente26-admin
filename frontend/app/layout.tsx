@@ -6,34 +6,37 @@ import AuthGuard from "./components/auth-guard";
 import "./globals.css";
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+ variable: "--font-geist-sans",
+ subsets: ["latin"],
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+ variable: "--font-geist-mono",
+ subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Invente'26 Attendance Admin",
-  description: "Scan tickets, mark attendance, and update ticket events.",
+ title: "Invente'26 Admin",
+ description: "Scan tickets, mark attendance, and manage event operations.",
+ icons: {
+ icon: "/favicon.png",
+ },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
-  return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
-        <AuthProvider>
-          <AuthGuard>
-            <AdminNavigation />
-            {children}
-          </AuthGuard>
-        </AuthProvider>
-      </body>
-    </html>
-  );
+ return (
+ <html
+  lang="en"
+  className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+ >
+  <body className="min-h-full flex flex-col">
+  <AuthProvider>
+   <AuthGuard>
+   <AdminNavigation />
+   {children}
+   </AuthGuard>
+  </AuthProvider>
+  </body>
+ </html>
+ );
 }
