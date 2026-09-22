@@ -2,16 +2,44 @@
 
 const express = require('express');
 const logger = require('../utils/logger');
-const { getTicketDetails } = require('../services/ticketService');
+const { getTicketDetails, searchTicketsByEmail } = require('../services/ticketService');
 const { markAttendance } = require('../services/attendanceService');
-const { replaceTicketEvent } = require('../services/assignmentService');
-const { asyncHandler, parseUuid } = require('../utils/errors');
+const { addTicketEvent, replaceTicketEvent } = require('../services/assignmentService');
+const { asyncHandler, parseUuid, HttpError } = require('../utils/errors');
 const { authn } = require('../middleware/authn');
 const { authz, assertEventScope } = require('../middleware/authz');
 const { PERMISSIONS } = require('../config/permissions');
 
 function createScanRouter({ db }) {
   const router = express.Router();
+
+  function parseSearchEmail(value) {
+    if (typeof value !== 'string') {
+      throw new HttpError(400, 'email is required', 'MISSING_EMAIL');
+    }
+
+    const email = value.trim().toLowerCase();
+    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new HttpError(400, 'enter a valid email address', 'INVALID_EMAIL');
+    }
+
+    return email;
+  }
+
+  /**
+   * GET /scan/search?email=...
+   *
+   * Returns complete ticket payloads for every ticket belonging to the exact
+   * email address. The client can select a result without fetching it again.
+   */
+  router.get(
+    '/scan/search',
+    authn, authz(PERMISSIONS.SCAN_READ),
+    asyncHandler(async (req, res) => {
+      const email = parseSearchEmail(req.query.email);
+      res.json(await searchTicketsByEmail(db, email));
+    }),
+  );
 
   /**
    * GET /scan/:ticketId
@@ -65,6 +93,25 @@ function createScanRouter({ db }) {
       const nextEventId    = parseUuid(req.body?.event_id, 'event_id');
       const result = await replaceTicketEvent(db, ticketId, currentEventId, nextEventId);
       logger.info({ type: 'event_assigned', ticket_id: ticketId, from_event_id: currentEventId, to_event_id: nextEventId, user_id: req.adminUser?.userId }, 'Ticket event reassigned');
+      res.json(result);
+    }),
+  );
+
+  /**
+   * POST /scan/:ticketId/add-event
+   * Body: { event_id }
+   *
+   * Master admin and volunteer may add an un-attended TECH event to a
+   * TECHPASS with fewer than four assigned events.
+   */
+  router.post(
+    '/scan/:ticketId/add-event',
+    authn, authz(PERMISSIONS.ASSIGN_WRITE),
+    asyncHandler(async (req, res) => {
+      const ticketId = parseUuid(req.params.ticketId, 'ticketId');
+      const eventId = parseUuid(req.body?.event_id, 'event_id');
+      const result = await addTicketEvent(db, ticketId, eventId);
+      logger.info({ type: 'event_added', ticket_id: ticketId, event_id: eventId, user_id: req.adminUser?.userId }, 'Event added to ticket');
       res.json(result);
     }),
   );

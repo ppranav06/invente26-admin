@@ -38,14 +38,14 @@ function createParticipantsRouter({ db }) {
    * GET /events/:eventId/participants
    *
    * Paginated participant list.
-   * Query: ?page, ?limit (max 200), ?status, ?college
+   * Query: ?page, ?limit (max 200), ?status, ?college, ?search
    */
   router.get(
     '/events/:eventId/participants',
     authn, authz(PERMISSIONS.PARTICIPANTS_READ),
     asyncHandler(async (req, res) => {
       const eventId = parseUuid(req.params.eventId, 'eventId');
-      await resolveScope(req.adminUser, eventId);
+      const event = await resolveScope(req.adminUser, eventId);
 
       const data = await getParticipants(db, eventId, {
         page:    req.query.page,
@@ -55,7 +55,18 @@ function createParticipantsRouter({ db }) {
         search:  req.query.search,
       });
 
-      return res.status(200).json(data);
+      return res.status(200).json({
+        ...data,
+        event: {
+          event_id: event.event_id,
+          name: event.name,
+          dept_name: event.dept_name,
+          event_type: event.event_type,
+          date: event.date,
+          reg_count: Number(event.reg_count),
+          attend_count: Number(event.attend_count),
+        },
+      });
     }),
   );
 
@@ -132,4 +143,3 @@ function createParticipantsRouter({ db }) {
 }
 
 module.exports = { createParticipantsRouter };
-

@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { use } from "react";
 import Link from "next/link";
 import { useAuth } from "@/app/lib/authContext";
 import {
  getParticipants,
  exportParticipants,
- getEvents,
  ApiError,
  type Participant,
 } from "@/app/lib/api";
@@ -27,57 +26,56 @@ export default function ParticipantsPage({
  const [status, setStatus] = useState("");
  const [college, setCollege] = useState("");
  const [search, setSearch] = useState("");
- const [debouncedSearch, setDebouncedSearch] = useState("");
+ const [appliedSearch, setAppliedSearch] = useState("");
+ const [appliedCollege, setAppliedCollege] = useState("");
  const [loading, setLoading] = useState(true);
  const [error, setError] = useState<string | null>(null);
  const [exporting, setExporting] = useState(false);
  const [event, setEvent] = useState<CatalogEvent | null>(null);
+ const requestSequence = useRef(0);
+ const lastRequestKey = useRef("");
 
- useEffect(() => {
- const timer = setTimeout(() => setDebouncedSearch(search), 300);
- return () => clearTimeout(timer);
- }, [search]);
+ const applyFilters = () => {
+  const nextSearch = search.trim().slice(0, 100);
+  const nextCollege = college.trim().slice(0, 100);
+  setAppliedSearch(nextSearch.length >= 2 ? nextSearch : "");
+  setAppliedCollege(nextCollege.length >= 2 ? nextCollege : "");
+  setPage(1);
+ };
 
  const loadParticipants = useCallback(async () => {
  if (!user) return;
+ const requestKey = [eventId, page, limit, status, appliedCollege, appliedSearch].join("\u0000");
+ if (lastRequestKey.current === requestKey) return;
+ lastRequestKey.current = requestKey;
+ const requestId = ++requestSequence.current;
  setLoading(true);
  setError(null);
  try {
   const filters: { page: number; limit: number; status?: string; college?: string; search?: string } = { page, limit };
   if (status) filters.status = status;
-  if (college) filters.college = college;
-  if (debouncedSearch) filters.search = debouncedSearch;
+  if (appliedCollege) filters.college = appliedCollege;
+  if (appliedSearch) filters.search = appliedSearch;
   const data = await getParticipants(eventId, filters);
+  if (requestSequence.current !== requestId) return;
   setParticipants(data.rows);
   setTotal(data.total);
+  setEvent(data.event);
  } catch (err) {
+  if (requestSequence.current !== requestId) return;
+  lastRequestKey.current = "";
   setError(err instanceof ApiError ? err.message : "Failed to load participants.");
  } finally {
-  setLoading(false);
+  if (requestSequence.current === requestId) setLoading(false);
  }
- }, [eventId, page, limit, status, college, debouncedSearch, user]);
+ }, [eventId, page, limit, status, appliedCollege, appliedSearch, user]);
 
  useEffect(() => {
- void loadParticipants();
+ const timer = setTimeout(() => {
+  void loadParticipants();
+ }, 0);
+ return () => clearTimeout(timer);
  }, [loadParticipants]);
-
- useEffect(() => {
- if (!user) return;
- let cancelled = false;
- getEvents()
-  .then((data) => {
-  if (!cancelled) {
-   const found = data.rows.find((e) => e.event_id === eventId);
-   if (found) setEvent(found);
-  }
-  })
-  .catch(() => {});
- return () => { cancelled = true; };
- }, [user, eventId]);
-
- useEffect(() => {
- setPage(1);
- }, [status, college, debouncedSearch]);
 
  const totalPages = Math.ceil(total / limit);
 
@@ -86,8 +84,8 @@ export default function ParticipantsPage({
   try {
    const blob = await exportParticipants(eventId, {
     status: status || undefined,
-    college: college || undefined,
-    search: debouncedSearch || undefined,
+    college: appliedCollege || undefined,
+    search: appliedSearch || undefined,
    });
    const url = URL.createObjectURL(blob);
    const a = document.createElement("a");
@@ -149,7 +147,10 @@ export default function ParticipantsPage({
    />
    <select
    value={status}
-   onChange={(e) => setStatus(e.target.value)}
+   onChange={(e) => {
+    setStatus(e.target.value);
+    setPage(1);
+   }}
    className=" border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
    >
    <option value="">All payment statuses</option>
@@ -157,6 +158,13 @@ export default function ParticipantsPage({
    <option value="Accepted">Accepted</option>
    <option value="Rejected">Rejected</option>
    </select>
+   <button
+    type="button"
+    onClick={applyFilters}
+    className="bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700"
+   >
+    Search
+   </button>
   </div>
    <button
     type="button"

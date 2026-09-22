@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/app/lib/authContext";
 import {
  listAdminUsers,
@@ -49,6 +49,8 @@ export default function AdminUsersPage() {
  const [formError, setFormError] = useState<string | null>(null);
  const [createdResetLink, setCreatedResetLink] = useState<string | null>(null);
  const [events, setEvents] = useState<ExternalEvent[]>([]);
+ const [organizerSearch, setOrganizerSearch] = useState("");
+ const [appliedOrganizerSearch, setAppliedOrganizerSearch] = useState("");
 
  useEffect(() => {
  if (user?.role !== "master_admin") return;
@@ -74,18 +76,14 @@ export default function AdminUsersPage() {
  return () => { cancelled = true; };
  }, [user]);
 
- const reloadUsers = useCallback(async () => {
- setLoading(true);
- setError(null);
- try {
-  const data = await listAdminUsers();
-  setUsers(data.rows);
- } catch (err) {
-  setError(err instanceof ApiError ? err.message : "Failed to load users.");
- } finally {
-  setLoading(false);
- }
- }, []);
+ const applyOrganizerSearch = () => {
+  setAppliedOrganizerSearch(organizerSearch.trim().toLowerCase());
+ };
+
+ const visibleUsers = useMemo(() => {
+ if (!appliedOrganizerSearch) return users;
+ return users.filter((adminUser) => adminUser.email.toLowerCase().includes(appliedOrganizerSearch));
+ }, [appliedOrganizerSearch, users]);
 
  if (user?.role !== "master_admin") {
  return (
@@ -127,9 +125,9 @@ export default function AdminUsersPage() {
   if (form.role !== editingUser.role) updateData.role = form.role;
   if (form.event_id !== (editingUser.event_id || "")) updateData.event_id = form.event_id || null;
   if (form.dept_name !== (editingUser.dept_name || "")) updateData.dept_name = form.dept_name || null;
-  await updateAdminUser(editingUser.user_id, updateData);
+  const result = await updateAdminUser(editingUser.user_id, updateData);
+  setUsers((current) => current.map((adminUser) => adminUser.user_id === result.user.user_id ? result.user : adminUser));
   setShowModal(false);
-  void reloadUsers();
   } else {
   if (!form.email.trim()) { setFormError("Email is required."); setSaving(false); return; }
   const result = await createAdminUser({
@@ -138,19 +136,17 @@ export default function AdminUsersPage() {
    event_id: form.event_id || undefined,
    dept_name: form.dept_name || undefined,
   });
+  setUsers((current) => [...current, result.user].sort((left, right) => left.role.localeCompare(right.role) || left.email.localeCompare(right.email)));
   if (result.password_reset_link) {
    setCreatedResetLink(result.password_reset_link);
-   setSaving(false);
-   void reloadUsers();
   } else {
    setShowModal(false);
-   void reloadUsers();
   }
   }
  } catch (err) {
   setFormError(err instanceof ApiError ? err.message : "Save failed.");
  } finally {
-  if (!createdResetLink) setSaving(false);
+  setSaving(false);
  }
  };
 
@@ -158,7 +154,7 @@ export default function AdminUsersPage() {
  if (!confirm(`Remove ${u.email} from admin users?`)) return;
  try {
   await deleteAdminUser(u.user_id);
-  void reloadUsers();
+  setUsers((current) => current.filter((adminUser) => adminUser.user_id !== u.user_id));
  } catch (err) {
   alert(err instanceof ApiError ? err.message : "Delete failed.");
  }
@@ -196,62 +192,90 @@ export default function AdminUsersPage() {
   )}
 
   {!loading && !error && (
-  <div className="overflow-hidden border border-slate-200 bg-white">
-   <div className="overflow-x-auto">
-   <table className="w-full text-left text-sm">
-    <thead>
-     <tr className="border-b border-slate-100 text-xs font-bold uppercase tracking-wider text-slate-500">
-      <th className="px-5 py-3">Email</th>
-      <th className="px-5 py-3">Role</th>
-      <th className="px-5 py-3">Event</th>
-      <th className="px-5 py-3">Dept</th>
-      <th className="px-5 py-3">User ID</th>
-      <th className="px-5 py-3" />
-     </tr>
-    </thead>
-    <tbody>
-    {users.length === 0 && (
-     <tr>
-     <td colSpan={6} className="px-5 py-12 text-center text-sm text-slate-500">
-      No admin users found.
-     </td>
-     </tr>
-    )}
-    {users.map((u) => (
-     <tr key={u.user_id} className="border-b border-slate-50 last:border-0">
-     <td className="px-5 py-3 font-medium text-slate-950">{u.email}</td>
-     <td className="px-5 py-3">
-      <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${roleBadgeClass(u.role)}`}>
-      {roleLabel(u.role)}
-      </span>
-     </td>
-      <td className="px-5 py-3 font-mono text-xs text-slate-500">{events.find((e) => e.event_id === u.event_id)?.name || "—"}</td>
-     <td className="px-5 py-3 text-slate-600">{u.dept_name || "—"}</td>
-     <td className="px-5 py-3 font-mono text-xs text-slate-400 max-w-[120px] truncate">{u.user_id}</td>
-     <td className="px-5 py-3">
-      <div className="flex gap-2">
-      <button
-       type="button"
-       onClick={() => openEdit(u)}
-       className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
-      >
-       Edit
-      </button>
-      <button
-       type="button"
-       onClick={() => void handleDelete(u)}
-       className="text-xs font-semibold text-rose-600 hover:text-rose-800"
-      >
-       Delete
-      </button>
-      </div>
-     </td>
-     </tr>
-    ))}
-    </tbody>
-   </table>
+  <>
+   <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex w-full gap-2 sm:w-auto">
+     <input
+      type="email"
+      value={organizerSearch}
+      onChange={(event) => setOrganizerSearch(event.target.value)}
+      onKeyDown={(event) => {
+       if (event.key === "Enter") applyOrganizerSearch();
+      }}
+      placeholder="Search organisers by email…"
+      className="w-full border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 sm:w-80"
+      aria-label="Search organisers by email"
+     />
+     <button
+      type="button"
+      onClick={applyOrganizerSearch}
+      className="shrink-0 bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700"
+     >
+      Search
+     </button>
+    </div>
+    <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
+     {visibleUsers.length} organiser{visibleUsers.length !== 1 ? "s" : ""}
+    </p>
    </div>
-  </div>
+
+   <div className="overflow-hidden border border-slate-200 bg-white">
+    <div className="overflow-x-auto">
+    <table className="w-full text-left text-sm">
+     <thead>
+      <tr className="border-b border-slate-100 text-xs font-bold uppercase tracking-wider text-slate-500">
+       <th className="px-5 py-3">Email</th>
+       <th className="px-5 py-3">Role</th>
+       <th className="px-5 py-3">Event</th>
+       <th className="px-5 py-3">Dept</th>
+       <th className="px-5 py-3">User ID</th>
+       <th className="px-5 py-3" />
+      </tr>
+     </thead>
+     <tbody>
+     {visibleUsers.length === 0 && (
+      <tr>
+      <td colSpan={6} className="px-5 py-12 text-center text-sm text-slate-500">
+       {users.length === 0 ? "No admin users found." : "No organisers match this email."}
+      </td>
+      </tr>
+     )}
+     {visibleUsers.map((u) => (
+      <tr key={u.user_id} className="border-b border-slate-50 last:border-0">
+      <td className="px-5 py-3 font-medium text-slate-950">{u.email}</td>
+      <td className="px-5 py-3">
+       <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${roleBadgeClass(u.role)}`}>
+       {roleLabel(u.role)}
+       </span>
+      </td>
+       <td className="px-5 py-3 font-mono text-xs text-slate-500">{events.find((e) => e.event_id === u.event_id)?.name || "—"}</td>
+      <td className="px-5 py-3 text-slate-600">{u.dept_name || "—"}</td>
+      <td className="px-5 py-3 font-mono text-xs text-slate-400 max-w-[120px] truncate">{u.user_id}</td>
+      <td className="px-5 py-3">
+       <div className="flex gap-2">
+       <button
+        type="button"
+        onClick={() => openEdit(u)}
+        className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+       >
+        Edit
+       </button>
+       <button
+        type="button"
+        onClick={() => void handleDelete(u)}
+        className="text-xs font-semibold text-rose-600 hover:text-rose-800"
+       >
+        Delete
+       </button>
+       </div>
+      </td>
+      </tr>
+     ))}
+     </tbody>
+    </table>
+    </div>
+   </div>
+  </>
   )}
 
   {showModal && (
