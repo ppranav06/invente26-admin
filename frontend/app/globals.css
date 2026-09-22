@@ -26,7 +26,6 @@ select {
 
 .panel {
   border: 1px solid rgb(226 232 240 / 0.9);
-  border-radius: 1.25rem;
   background: rgb(255 255 255 / 0.92);
   box-shadow: 0 20px 45px rgb(15 23 42 / 0.06);
 }
