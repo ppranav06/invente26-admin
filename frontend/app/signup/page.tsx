@@ -6,144 +6,160 @@ import { auth } from "@/app/lib/firebase";
 import Link from "next/link";
 
 export default function SignupPage() {
- const [email, setEmail] = useState("");
- const [password, setPassword] = useState("");
- const [confirmPassword, setConfirmPassword] = useState("");
- const [loading, setLoading] = useState(false);
- const [error, setError] = useState<string | null>(null);
- const [success, setSuccess] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
- const handleSubmit = async (e: React.FormEvent) => {
- e.preventDefault();
- setError(null);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
 
- if (password !== confirmPassword) {
-  setError("Passwords do not match.");
-  return;
- }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
 
- if (password.length < 6) {
-  setError("Password must be at least 6 characters.");
-  return;
- }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
 
- setLoading(true);
- try {
-  await createUserWithEmailAndPassword(auth, email, password);
-  setSuccess(true);
- } catch (err) {
-  if (err instanceof Error) {
-  const msg = err.message;
-  if (msg.includes("auth/email-already-in-use")) {
-   setError("An account with this email already exists.");
-  } else if (msg.includes("auth/invalid-email")) {
-   setError("Invalid email address.");
-  } else if (msg.includes("auth/weak-password")) {
-   setError("Password is too weak. Use at least 6 characters.");
-  } else {
-   setError(msg || "Signup failed. Please try again.");
-  }
-  } else {
-  setError("Signup failed. Please try again.");
-  }
- } finally {
-  setLoading(false);
- }
- };
+    setLoading(true);
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      setSuccess(true);
+    } catch (err) {
+      if (err instanceof Error) {
+        const msg = err.message;
+        if (msg.includes("auth/email-already-in-use")) {
+          setError("An account with this email already exists.");
+        } else if (msg.includes("auth/invalid-email")) {
+          setError("Invalid email address.");
+        } else if (msg.includes("auth/weak-password")) {
+          setError("Password is too weak. Use at least 6 characters.");
+        } else {
+          setError(msg || "Signup failed. Please try again.");
+        }
+      } else {
+        setError("Signup failed. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
- return (
- <main className="flex min-h-screen items-center justify-center px-4 py-12">
-  <div className="w-full max-w-sm">
-  <div className="mb-8 text-center">
-   <img src="/favicon.png" alt="" className="mx-auto mb-4 h-14 w-14" />
-   <h1 className="text-2xl font-black tracking-tight text-slate-950">Create Account</h1>
-   <p className="mt-1 text-sm text-slate-500">Register a new organizer account</p>
-  </div>
+  return (
+    <main className="min-h-screen bg-[#FAFAF9]">
+      {/* Top bar */}
+      <div className="border-b border-stone-200 bg-white">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-3">
+            <img src="/favicon.png" alt="" className="h-9 w-9" />
+            <span className="text-sm font-black tracking-[0.2em] text-stone-900">INVENTE&apos;26</span>
+          </div>
+          <Link
+            href="/login"
+            className="text-sm font-bold text-[#de8200] transition hover:text-[#a86000]"
+          >
+            Sign in
+          </Link>
+        </div>
+      </div>
 
-  <div className="panel p-6">
-   {success ? (
-   <div className="space-y-4 text-center">
-    <div className=" border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-    Account created successfully. You can now sign in.
-    </div>
-    <Link
-    href="/login"
-    className="inline-block w-full bg-indigo-600 px-4 py-3 text-sm font-bold text-white text-center transition hover:bg-indigo-700"
-    >
-    Go to Sign In
-    </Link>
-   </div>
-   ) : (
-   <form onSubmit={handleSubmit} className="space-y-4">
-    <div>
-    <label htmlFor="email" className="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-     Email
-    </label>
-    <input
-     id="email"
-     type="email"
-     required
-     value={email}
-     onChange={(e) => setEmail(e.target.value)}
-     className="w-full border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
-     placeholder="admin@invente.com"
-     autoComplete="email"
-    />
-    </div>
-    <div>
-    <label htmlFor="password" className="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-     Password
-    </label>
-    <input
-     id="password"
-     type="password"
-     required
-     value={password}
-     onChange={(e) => setPassword(e.target.value)}
-     className="w-full border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
-     placeholder="At least 6 characters"
-     autoComplete="new-password"
-    />
-    </div>
-    <div>
-    <label htmlFor="confirmPassword" className="mb-1 block text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-     Confirm Password
-    </label>
-    <input
-     id="confirmPassword"
-     type="password"
-     required
-     value={confirmPassword}
-     onChange={(e) => setConfirmPassword(e.target.value)}
-     className="w-full border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
-     placeholder="Repeat password"
-     autoComplete="new-password"
-    />
-    </div>
+      <div className="mx-auto flex max-w-5xl flex-col items-center px-6 py-14">
+        <div className="mb-8 text-center">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#de8200]">New account</p>
+          <h1 className="mt-2 text-4xl font-black tracking-tight text-stone-900">Create account</h1>
+          <p className="mt-3 text-sm text-stone-500">Register a new organizer account to get started.</p>
+        </div>
 
-    {error && (
-    <div className=" border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700" role="alert">
-     {error}
-    </div>
-    )}
+        <div className="w-full max-w-md border border-stone-200 bg-white p-7">
+          {success ? (
+            <div className="space-y-5 text-center">
+              <div className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+                Account created successfully. You can now sign in.
+              </div>
+              <Link
+                href="/login"
+                className="inline-block w-full bg-[#de8200] px-6 py-4 text-base font-bold text-white text-center transition hover:bg-[#c47200]"
+              >
+                Go to Sign In
+              </Link>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label htmlFor="email" className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.14em] text-stone-400">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-[#de8200] focus:bg-white focus:ring-4 focus:ring-[#fef0dc]"
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                />
+              </div>
+              <div>
+                <label htmlFor="password" className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.14em] text-stone-400">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-[#de8200] focus:bg-white focus:ring-4 focus:ring-[#fef0dc]"
+                  placeholder="At least 6 characters"
+                  autoComplete="new-password"
+                />
+              </div>
+              <div>
+                <label htmlFor="confirmPassword" className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.14em] text-stone-400">
+                  Confirm Password
+                </label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-[#de8200] focus:bg-white focus:ring-4 focus:ring-[#fef0dc]"
+                  placeholder="Repeat password"
+                  autoComplete="new-password"
+                />
+              </div>
 
-    <button
-    type="submit"
-    disabled={loading}
-    className="w-full bg-indigo-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-    >
-    {loading ? "Creating account…" : "Create account"}
-    </button>
-   </form>
-   )}
+              {error && (
+                <div className="border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700" role="alert">
+                  {error}
+                </div>
+              )}
 
-   <div className="mt-4 text-center">
-   <Link href="/login" className="text-xs font-medium text-indigo-600 hover:text-indigo-800">
-    Already have an account? Sign in
-   </Link>
-   </div>
-  </div>
-  </div>
- </main>
- );
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-[#de8200] px-6 py-4 text-base font-bold text-white transition hover:bg-[#c47200] disabled:cursor-not-allowed disabled:bg-stone-300"
+              >
+                {loading ? "Creating account…" : "Create account"}
+              </button>
+            </form>
+          )}
+
+          <div className="mt-5 text-center">
+            <Link href="/login" className="text-xs font-medium text-[#de8200] hover:text-[#a86000]">
+              Already have an account? Sign in
+            </Link>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
 }

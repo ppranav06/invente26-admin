@@ -8,196 +8,155 @@ import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/app/lib/firebase";
 import { ApiError } from "@/app/lib/api";
 
-function LogoIcon() {
- return <img src="/favicon.png" alt="" className="h-10 w-10" />;
-}
-
 export default function LoginPage() {
- const { signIn } = useAuth();
- const router = useRouter();
- const searchParams = useSearchParams();
- const redirectTo = searchParams.get("from") || "/";
- const [email, setEmail] = useState("");
- const [password, setPassword] = useState("");
- const [loading, setLoading] = useState(false);
- const [error, setError] = useState<string | null>(null);
- const [resetSent, setResetSent] = useState(false);
- const [resetLoading, setResetLoading] = useState(false);
+  const { signIn } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("from") || "/";
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
- const handleSubmit = async (e: React.FormEvent) => {
- e.preventDefault();
- setLoading(true);
- setError(null);
- try {
-  await signIn(email, password);
-  router.push(redirectTo);
- } catch (err) {
-  if (err instanceof ApiError) {
-  setError(err.message);
-  } else if (err instanceof Error) {
-  if (err.message.includes("auth/invalid-credential") || err.message.includes("auth/wrong-password") || err.message.includes("auth/user-not-found")) {
-   setError("Invalid email or password.");
-  } else if (err.message.includes("auth/too-many-requests")) {
-   setError("Too many attempts. Please try again later.");
-  } else {
-   setError(err.message || "Login failed. Please try again.");
-  }
-  } else {
-  setError("Login failed. Please try again.");
-  }
- } finally {
-  setLoading(false);
- }
- };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      await signIn(email, password);
+      router.push(redirectTo);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else if (err instanceof Error) {
+        if (err.message.includes("auth/invalid-credential") || err.message.includes("auth/wrong-password") || err.message.includes("auth/user-not-found")) {
+          setError("Invalid email or password.");
+        } else if (err.message.includes("auth/too-many-requests")) {
+          setError("Too many attempts. Please try again later.");
+        } else {
+          setError(err.message || "Login failed. Please try again.");
+        }
+      } else {
+        setError("Login failed. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
- const handleResetPassword = async () => {
- if (!email) {
-  setError("Enter your email first to reset your password.");
-  return;
- }
- setResetLoading(true);
- setError(null);
- try {
-  await sendPasswordResetEmail(auth, email);
-  setResetSent(true);
- } catch (err) {
-  if (err instanceof Error) {
-  setError(err.message || "Could not send reset email.");
-  } else {
-  setError("Could not send reset email.");
-  }
- } finally {
-  setResetLoading(false);
- }
- };
+  const handleResetPassword = async () => {
+    if (!email) {
+      setError("Enter your email first to reset your password.");
+      return;
+    }
+    setResetLoading(true);
+    setError(null);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setResetSent(true);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message || "Could not send reset email.");
+      } else {
+        setError("Could not send reset email.");
+      }
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
- return (
- <main className="flex min-h-screen">
-  {/* Left branding panel */}
-  <div className="hidden w-1/2 bg-indigo-600 lg:flex lg:flex-col lg:items-center lg:justify-center">
-  <div className="px-12 text-center">
-   <div className="mb-6 inline-flex items-center gap-3">
-   <LogoIcon />
-   <span className="text-3xl font-extrabold tracking-tight text-white">INVENTE&apos;26</span>
-   </div>
-   <h2 className="mt-6 text-4xl font-extrabold leading-tight text-white">
-   Attendance<br />Admin Panel
-   </h2>
-   <p className="mt-4 max-w-sm text-sm leading-relaxed text-indigo-200">
-   Scan tickets, track registrations, and manage attendance for all
-   Invente&apos;26 events from a single dashboard.
-   </p>
-   <div className="mt-10 grid grid-cols-3 gap-6">
-   <div>
-    <p className="text-2xl font-black text-white">90+</p>
-    <p className="mt-1 text-xs font-medium text-indigo-300">Events</p>
-   </div>
-   <div>
-    <p className="text-2xl font-black text-white">10</p>
-    <p className="mt-1 text-xs font-medium text-indigo-300">Departments</p>
-   </div>
-   <div>
-    <p className="text-2xl font-black text-white">2K+</p>
-    <p className="mt-1 text-xs font-medium text-indigo-300">Participants</p>
-   </div>
-   </div>
-  </div>
-  </div>
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[#FAFAF9] px-4">
+      <div className="w-full max-w-sm">
+        {/* Logo */}
+        <div className="mb-8 text-center">
+          <img src="/invente-lgp.png" alt="Invente'26" className="mx-auto mb-5 h-24 w-auto" />
+          <div className="mx-auto mb-5 h-px w-16 bg-stone-300" />
+          <h1 className="text-2xl font-black tracking-tight text-stone-900">Sign in</h1>
+          <p className="mt-1.5 text-sm text-stone-400">
+            Invente&apos;26 attendance admin
+          </p>
+        </div>
 
-  {/* Right login form */}
-  <div className="flex w-full items-center justify-center px-6 py-12 lg:w-1/2">
-  <div className="w-full max-w-sm">
-   {/* Mobile logo */}
-   <div className="mb-8 flex items-center gap-3 lg:hidden">
-   <LogoIcon />
-   <span className="text-xl font-extrabold tracking-tight text-slate-950">
-    INVENTE&apos;26
-   </span>
-   </div>
+        {/* Form card */}
+        <div className="border border-stone-200 bg-white p-7">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label htmlFor="email" className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.14em] text-stone-400">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-[#de8200] focus:bg-white focus:ring-4 focus:ring-[#fef0dc]"
+                placeholder="you@example.com"
+                autoComplete="email"
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.14em] text-stone-400">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-[#de8200] focus:bg-white focus:ring-4 focus:ring-[#fef0dc]"
+                placeholder="Enter your password"
+                autoComplete="current-password"
+              />
+            </div>
 
-   <div className="mb-8">
-   <h1 className="text-2xl font-extrabold tracking-tight text-slate-950">
-    Sign in
-   </h1>
-   <p className="mt-2 text-sm text-slate-500">
-    Enter your credentials to access the admin panel
-   </p>
-   </div>
+            {error && (
+              <div className="border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700" role="alert">
+                {error}
+              </div>
+            )}
 
-   <form onSubmit={handleSubmit} className="space-y-4">
-   <div>
-    <label
-    htmlFor="email"
-    className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500"
-    >
-    Email
-    </label>
-    <input
-    id="email"
-    type="email"
-    required
-    value={email}
-    onChange={(e) => setEmail(e.target.value)}
-    className="w-full border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
-    placeholder="admin@invente.com"
-    autoComplete="email"
-    />
-   </div>
-   <div>
-    <label
-    htmlFor="password"
-    className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500"
-    >
-    Password
-    </label>
-    <input
-    id="password"
-    type="password"
-    required
-    value={password}
-    onChange={(e) => setPassword(e.target.value)}
-    className="w-full border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
-    placeholder="Enter password"
-    autoComplete="current-password"
-    />
-   </div>
+            {resetSent && (
+              <div className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700" role="status">
+                Password reset email sent. Check your inbox.
+              </div>
+            )}
 
-   {error && (
-    <div className="border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700" role="alert">
-    {error}
-    </div>
-   )}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-[#de8200] px-4 py-3.5 text-sm font-bold text-white transition hover:bg-[#c47200] disabled:cursor-not-allowed disabled:bg-stone-300"
+            >
+              {loading ? "Signing in…" : "Sign in"}
+            </button>
+          </form>
 
-   {resetSent && (
-    <div className="border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700" role="status">
-    Password reset email sent. Check your inbox.
-    </div>
-   )}
+          <div className="mt-5 flex items-center justify-between border-t border-stone-100 pt-4">
+            <button
+              type="button"
+              onClick={handleResetPassword}
+              disabled={resetLoading}
+              className="text-xs font-medium text-stone-400 transition hover:text-[#de8200] disabled:text-stone-300"
+            >
+              {resetLoading ? "Sending…" : resetSent ? "Reset email sent" : "Forgot password?"}
+            </button>
+            <Link
+              href="/signup"
+              className="text-xs font-medium text-stone-400 transition hover:text-[#de8200]"
+            >
+              Create account
+            </Link>
+          </div>
+        </div>
 
-   <button
-    type="submit"
-    disabled={loading}
-    className="w-full bg-indigo-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-   >
-    {loading ? "Signing in…" : "Sign in"}
-   </button>
-   </form>
-
-   <div className="mt-4 flex items-center justify-between">
-   <button
-    type="button"
-    onClick={handleResetPassword}
-    disabled={resetLoading}
-    className="text-xs font-medium text-indigo-600 hover:text-indigo-800 disabled:text-slate-400"
-   >
-    {resetLoading ? "Sending…" : resetSent ? "Reset email sent" : "Forgot password?"}
-   </button>
-   <Link href="/signup" className="text-xs font-medium text-indigo-600 hover:text-indigo-800">
-    Create account
-   </Link>
-   </div>
-  </div>
-  </div>
- </main>
- );
+        <p className="mt-6 text-center text-xs text-stone-300">
+          New here? Create an account first, then sign in with those credentials.
+        </p>
+      </div>
+    </main>
+  );
 }
