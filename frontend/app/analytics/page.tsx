@@ -41,17 +41,16 @@ type EventRow = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
- technical: "#6366f1",
- non_technical: "#f59e0b",
- workshop: "#10b981",
- seminar: "#3b82f6",
- competition: "#ef4444",
+ TECH: "#6366f1",
+ CULTURAL: "#f59e0b",
+ WORKSHOP: "#10b981",
+ SEMINAR: "#3b82f6",
+ COMPETITION: "#ef4444",
  default: "#8b5cf6",
 };
 
 function getTypeColor(type: string): string {
- const key = type.toLowerCase().replace(/[\s-]/g, "_");
- return TYPE_COLORS[key] || TYPE_COLORS.default;
+ return TYPE_COLORS[type.toUpperCase()] || TYPE_COLORS.default;
 }
 
 function StatCard({
@@ -333,11 +332,12 @@ export default function AnalyticsPage() {
     const deptPct = dept.total_registrations > 0
     ? Math.round((dept.total_attended / dept.total_registrations) * 100)
     : 0;
-    const eventBarData = dept.events.map((e) => ({
-    label: e.name,
-    registered: e.reg_count,
-    attended: e.attend_count,
-    }));
+     const eventBarData = dept.events.map((e) => ({
+      label: e.name,
+      registered: e.reg_count,
+      attended: e.attend_count,
+      color: getTypeColor(e.event_type),
+      }));
 
     return (
     <div key={dept.dept_name} className="border border-slate-200 bg-white">
@@ -395,7 +395,7 @@ export default function AnalyticsPage() {
         <tr key={evt.event_id} className="border-b border-slate-50 last:border-0">
         <td className="px-5 py-3 font-medium text-slate-950">{evt.name}</td>
         <td className="px-5 py-3">
-         <span className="bg-indigo-50 px-2.5 py-1 text-xs font-bold uppercase text-indigo-700">{evt.event_type}</span>
+         <span className="px-2.5 py-1 text-xs font-bold uppercase" style={{ backgroundColor: getTypeColor(evt.event_type) + "20", color: getTypeColor(evt.event_type) }}>{evt.event_type}</span>
         </td>
         <td className="px-5 py-3 text-right tabular-nums text-slate-600">{evt.reg_count}</td>
         <td className="px-5 py-3 text-right tabular-nums text-slate-600">{evt.attend_count}</td>
@@ -452,7 +452,7 @@ export default function AnalyticsPage() {
       <td className="px-5 py-3 font-medium text-slate-950">{evt.name}</td>
       <td className="px-5 py-3 text-slate-600">{evt.dept_name}</td>
       <td className="px-5 py-3">
-       <span className="bg-indigo-50 px-2.5 py-1 text-xs font-bold uppercase text-indigo-700">{evt.event_type}</span>
+        <span className="px-2.5 py-1 text-xs font-bold uppercase" style={{ backgroundColor: getTypeColor(evt.event_type) + "20", color: getTypeColor(evt.event_type) }}>{evt.event_type}</span>
       </td>
       <td className="px-5 py-3 text-right tabular-nums text-slate-600">{evt.reg_count}</td>
       <td className="px-5 py-3 text-right tabular-nums text-slate-600">{evt.attend_count}</td>

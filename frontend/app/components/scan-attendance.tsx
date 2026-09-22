@@ -41,7 +41,11 @@ export default function ScanAttendance() {
  const [busyEventId, setBusyEventId] = useState<string | null>(null);
  const [message, setMessage] = useState<string | null>(null);
 
- const canMarkAttendance = user?.role === "master_admin" || user?.role === "event_admin";
+ const canMarkAttendance = user?.role === "master_admin" || user?.role === "super_admin";
+
+ const isEventAdminFor = (eventId: string): boolean => {
+  return user?.role === "event_admin" && user?.event_id === eventId;
+ };
 
  const onLoaded = useCallback((nextData: TicketResponse) => {
  setData(nextData);
@@ -93,7 +97,7 @@ export default function ScanAttendance() {
    <TicketSummary ticket={data.ticket} />
    <div className="space-y-3 p-5 sm:p-6">
     {data.events.length === 0 && <p className=" bg-slate-50 p-5 text-sm text-slate-500">No events are associated with this ticket.</p>}
-    {data.events.map((event) => <EventCard key={event.event_id} event={event} busy={busyEventId === event.event_id} onMark={() => void handleMark(event.event_id)} canMark={canMarkAttendance} />)}
+     {data.events.map((event) => <EventCard key={event.event_id} event={event} busy={busyEventId === event.event_id} onMark={() => void handleMark(event.event_id)} canMark={canMarkAttendance || isEventAdminFor(event.event_id)} />)}
    </div>
    {data.hackathon_teams.length > 0 && (
     <div className="border-t border-slate-200 px-5 py-5 sm:px-6">

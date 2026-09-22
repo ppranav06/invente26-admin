@@ -17,8 +17,8 @@ function issueTokens(db, adminUser) {
     userId:   adminUser.user_id,
     email:    adminUser.email,
     role:     adminUser.role,
-    eventId:  adminUser.event_id  || null,
-    deptName: adminUser.dept_name || null,
+    event_id: adminUser.event_id  || null,
+    dept_name: adminUser.dept_name || null,
   };
 
   const accessToken  = signAccessToken(userForToken);
@@ -95,11 +95,11 @@ function createAuthRouter({ db }) {
     }
 
     const accessToken = signAccessToken({
-      userId:   row.user_id,
-      email:    row.email,
-      role:     row.role,
-      eventId:  row.event_id  || null,
-      deptName: row.dept_name || null,
+      userId:    row.user_id,
+      email:     row.email,
+      role:      row.role,
+      event_id:  row.event_id  || null,
+      dept_name: row.dept_name || null,
     });
 
     logger.info({ type: 'auth_refresh', user_id: row.user_id }, 'Token refreshed');

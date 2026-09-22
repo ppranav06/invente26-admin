@@ -58,14 +58,14 @@ const TILES: Tile[] = [
  label: "Scan & Attendance",
  description: "Scan tickets and mark attendance in real time",
  icon: <ScanIcon />,
- allowedRoles: [ROLE.MASTER_ADMIN, ROLE.SUPER_ADMIN, ROLE.DEPT_ADMIN, ROLE.EVENT_ADMIN, ROLE.VOLUNTEER],
- },
- {
- href: "/events",
- label: "Events",
- description: "View and manage event assignments",
- icon: <EventsIcon />,
- allowedRoles: [ROLE.MASTER_ADMIN, ROLE.SUPER_ADMIN, ROLE.DEPT_ADMIN, ROLE.EVENT_ADMIN, ROLE.VOLUNTEER],
+    allowedRoles: [ROLE.MASTER_ADMIN, ROLE.SUPER_ADMIN, ROLE.DEPT_ADMIN, ROLE.EVENT_ADMIN],
+  },
+  {
+    href: "/events",
+    label: "Events",
+    description: "View and manage event assignments",
+    icon: <EventsIcon />,
+    allowedRoles: [ROLE.MASTER_ADMIN, ROLE.SUPER_ADMIN, ROLE.DEPT_ADMIN, ROLE.VOLUNTEER],
  },
  {
  href: "/analytics",
