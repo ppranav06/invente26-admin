@@ -2,14 +2,15 @@
 
 import { useCallback, useState } from "react";
 import { ApiError, markAttendance } from "../lib/api";
+import { isTicketAccepted } from "../lib/ticket";
 import type { TicketEvent, TicketResponse } from "../lib/types";
 import { useAuth } from "../lib/authContext";
 import TicketLookup from "./ticket-lookup";
 import TicketSummary from "./ticket-summary";
 
-function EventCard({ event, busy, onMark, canMark }: { event: TicketEvent; busy: boolean; onMark: () => void; canMark: boolean }) {
+function EventCard({ event, busy, onMark, canMark, ticketAccepted }: { event: TicketEvent; busy: boolean; onMark: () => void; canMark: boolean; ticketAccepted: boolean }) {
  return (
- <article className=" border border-slate-200 bg-slate-50/70 p-4 transition hover:border-indigo-200 hover:bg-white sm:p-5">
+ <article aria-disabled={!ticketAccepted} className={`border border-slate-200 p-4 transition sm:p-5 ${ticketAccepted ? "bg-slate-50/70 hover:border-indigo-200 hover:bg-white" : "cursor-not-allowed bg-slate-100 opacity-60 grayscale"}`}>
   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
   <div className="min-w-0">
    <div className="flex flex-wrap items-center gap-2">
@@ -25,8 +26,8 @@ function EventCard({ event, busy, onMark, canMark }: { event: TicketEvent; busy:
    Present
    </div>
   ) : canMark ? (
-   <button type="button" onClick={onMark} disabled={busy} className="shrink-0 bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-wait disabled:bg-slate-300">
-   {busy ? "Marking…" : "Mark attendance"}
+   <button type="button" onClick={onMark} disabled={busy || !ticketAccepted} className="shrink-0 bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300">
+   {!ticketAccepted ? "Ticket not accepted" : busy ? "Marking…" : "Mark attendance"}
    </button>
   ) : null}
   </div>
@@ -50,6 +51,7 @@ export default function ScanAttendance() {
  };
 
  const isDeptAdmin = user?.role === "dept_admin";
+ const ticketAccepted = data ? isTicketAccepted(data.ticket.status) : false;
 
  const onLoaded = useCallback((nextData: TicketResponse) => {
  setData(nextData);
@@ -57,7 +59,7 @@ export default function ScanAttendance() {
  }, []);
 
  const handleMark = async (eventId: string) => {
- if (!data || busyEventId) return;
+ if (!data || !ticketAccepted || busyEventId) return;
  setBusyEventId(eventId);
  setMessage(null);
 
@@ -112,6 +114,12 @@ export default function ScanAttendance() {
    </div>
   )}
 
+  {data && !ticketAccepted && (
+   <div className="mx-5 mt-5 border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-medium text-slate-600 sm:mx-6" role="status">
+    This ticket is not accepted. Attendance is unavailable until its status is Accepted.
+   </div>
+  )}
+
   {loading && <div className="grid place-items-center px-6 py-24 text-sm font-medium text-slate-500">Loading ticket events…</div>}
   {!loading && !data && <div className="grid place-items-center px-6 py-24 text-center"><div><div className="mx-auto grid h-14 w-14 place-items-center bg-indigo-50 text-2xl text-indigo-600">⌁</div><p className="mt-4 font-bold text-slate-700">No ticket loaded</p><p className="mt-1 text-sm text-slate-500">Scan a QR code or enter a ticket UUID to begin.</p></div></div>}
   {!loading && data && (
@@ -119,7 +127,7 @@ export default function ScanAttendance() {
    <TicketSummary ticket={data.ticket} />
    <div className="space-y-3 p-5 sm:p-6">
     {data.events.length === 0 && <p className=" bg-slate-50 p-5 text-sm text-slate-500">No events are associated with this ticket.</p>}
-     {data.events.map((event) => <EventCard key={event.event_id} event={event} busy={busyEventId === event.event_id} onMark={() => void handleMark(event.event_id)} canMark={canMarkAttendance || isEventAdminFor(event.event_id)} />)}
+     {data.events.map((event) => <EventCard key={event.event_id} event={event} busy={busyEventId === event.event_id} onMark={() => void handleMark(event.event_id)} canMark={canMarkAttendance || isEventAdminFor(event.event_id)} ticketAccepted={ticketAccepted} />)}
    </div>
    {data.hackathon_teams.length > 0 && (
     <div className="border-t border-slate-200 px-5 py-5 sm:px-6">

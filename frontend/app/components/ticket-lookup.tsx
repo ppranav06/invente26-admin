@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { ApiError, getTicket, searchTicketsByEmail } from "../lib/api";
-import { normalizeTicketId } from "../lib/ticket";
+import { isTicketAccepted, normalizeTicketId } from "../lib/ticket";
 import type { TicketResponse } from "../lib/types";
 import QrScanner from "./qr-scanner";
 
@@ -218,6 +218,7 @@ export default function TicketLookup({ onLoaded, onLoadingChange, brightness, zo
     <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Matching tickets</p>
     {emailResults.map((result) => {
      const ticket = result.ticket;
+     const accepted = isTicketAccepted(ticket.status);
      const eventNames = result.events.map((event) => event.name).join(", ");
      const selected = selectedTicketId === ticket.ticket_id;
      return (
@@ -226,8 +227,10 @@ export default function TicketLookup({ onLoaded, onLoadingChange, brightness, zo
        type="button"
        role="option"
        aria-selected={selected}
+       aria-disabled={!accepted}
+       disabled={!accepted}
        onClick={() => selectEmailResult(result)}
-       className={`w-full border p-4 text-left transition ${selected ? "border-indigo-500 bg-indigo-50" : "border-slate-200 bg-slate-50/70 hover:border-indigo-300 hover:bg-white"}`}
+       className={`w-full border p-4 text-left transition disabled:cursor-not-allowed ${!accepted ? "border-slate-200 bg-slate-100 opacity-60 grayscale" : selected ? "border-indigo-500 bg-indigo-50" : "border-slate-200 bg-slate-50/70 hover:border-indigo-300 hover:bg-white"}`}
       >
        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
@@ -237,7 +240,7 @@ export default function TicketLookup({ onLoaded, onLoadingChange, brightness, zo
         </div>
         <div className="shrink-0 text-left text-xs sm:text-right">
          <p className="font-bold uppercase text-indigo-700">{ticket.ticket_type}</p>
-         <p className="mt-1 text-slate-500">{ticket.status}</p>
+         <p className="mt-1 text-slate-500">{ticket.status}{!accepted && " · unavailable"}</p>
         </div>
        </div>
       </button>

@@ -145,9 +145,8 @@ export default function Home() {
 
   <section className="mt-16 border-t border-slate-200 pt-8" aria-labelledby="made-by-heading">
    <div>
-    <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">Made by</p>
-    <h2 id="made-by-heading" className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950">
-     One name keeps showing up.
+    <h2 id="made-by-heading" className="text-2xl font-extrabold tracking-tight text-slate-950">
+     Made by
     </h2>
    </div>
 
@@ -167,7 +166,10 @@ export default function Home() {
      </li>
     ))}
    </ul>
-   <p className="mt-4 text-xs text-slate-400">Apparently, Pranav was the common denominator all along.</p>
+   <div className="mt-4 space-y-1 text-xs text-slate-950">
+    <p>One name keeps showing up.</p>
+    <p>Apparently, Pranav was the common denominator all along.</p>
+   </div>
   </section>
  </main>
  );
