@@ -147,9 +147,8 @@ export default function Home() {
    <div>
     <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">Made by</p>
     <h2 id="made-by-heading" className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950">
-     One name keeps showing up.
+     One name to rule the game.
     </h2>
-    <p className="mt-1 text-sm text-slate-500">Three makers. One very familiar thread.</p>
    </div>
 
    <ul className="mt-6 grid gap-3 sm:grid-cols-3">
