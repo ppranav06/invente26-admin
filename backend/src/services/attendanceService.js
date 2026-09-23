@@ -17,7 +17,8 @@ async function markAttendance(db, ticketId, eventId) {
           e.dept_name,
           e.event_type,
           e.date,
-          tp.ticket_type
+          tp.ticket_type,
+          tp.status
         FROM public.ticket_event te
         JOIN public.ticket_payments tp ON tp.ticket_id = te.ticket_id
         JOIN public.events e ON e.event_id = te.event_id
@@ -30,6 +31,11 @@ async function markAttendance(db, ticketId, eventId) {
     const current = currentResult.rows[0];
     if (!current) {
       throw new HttpError(404, 'event is not associated with this ticket', 'TICKET_EVENT_NOT_FOUND');
+    }
+
+    if (current.status !== 'Accepted') {
+      // yess, 422 unprocessable entity indeed
+      throw new HttpError(422, 'attendance can only be marked for tickets with accepted payment status', 'PAYMENT_NOT_ACCEPTED');
     }
 
     if (current.attendance) {

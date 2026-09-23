@@ -130,6 +130,7 @@ test('participant filters combine name, email, phone, and college safely', async
 
 function clientForAttendance(currentRow) {
   const calls = [];
+  const row = { status: 'Accepted', ...currentRow };
   return {
     calls,
     client: {
@@ -137,6 +138,7 @@ function clientForAttendance(currentRow) {
         calls.push({ sql, params });
         if (sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK') return { rows: [] };
         if (sql.includes('FROM public.ticket_event te') && sql.includes('FOR UPDATE OF te')) return { rows: [currentRow] };
+        if (sql.includes('FROM public.ticket_event te') && sql.includes('FOR UPDATE OF te')) return { rows: [row] };
         if (sql.includes('UPDATE public.ticket_event')) {
           return { rows: [{ ticket_id: ticketId, event_id: eventOne, attendance: true, attendance_timestamp: '2026-09-19T10:00:00.000Z', updated_at: '2026-09-19T10:00:00.000Z' }] };
         }
@@ -159,6 +161,7 @@ test('attendance marks only the selected event and updates its counter once', as
     event_type: 'TECH',
     date: null,
     ticket_type: 'TECHPASS',
+    status: 'Accepted',
   });
   const db = { getClient: async () => fake.client };
 
@@ -180,6 +183,7 @@ test('already-attended events are idempotent and do not update counters', async 
     event_type: 'TECH',
     date: null,
     ticket_type: 'TECHPASS',
+    status: 'Accepted',
   });
   const db = { getClient: async () => fake.client };
 
@@ -187,6 +191,27 @@ test('already-attended events are idempotent and do not update counters', async 
 
   assert.equal(result.already_attended, true);
   assert.equal(fake.calls.some((call) => call.sql.includes('UPDATE public.events')), false);
+});
+
+test('attendance is rejected if payment status is not Accepted', async () => {
+  const fake = clientForAttendance({
+    ticket_id: ticketId,
+    event_id: eventOne,
+    attendance: false,
+    attendance_timestamp: null,
+    name: 'Robotics',
+    dept_name: 'IT',
+    event_type: 'TECH',
+    date: null,
+    ticket_type: 'TECHPASS',
+    status: 'Pending',
+  });
+  const db = { getClient: async () => fake.client };
+
+  await assert.rejects(
+    markAttendance(db, ticketId, eventOne),
+    (error) => error.code === 'PAYMENT_NOT_ACCEPTED' && error.status === 400,
+  );
 });
 
 test('event replacement rejects attended rows and duplicate event IDs', async () => {
