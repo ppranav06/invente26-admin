@@ -142,6 +142,34 @@ export default function Home() {
    </Link>
   ))}
   </div>
+
+  <section className="mt-16 border-t border-slate-200 pt-8" aria-labelledby="made-by-heading">
+   <div>
+    <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">Made by</p>
+    <h2 id="made-by-heading" className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950">
+     One name keeps showing up.
+    </h2>
+    <p className="mt-1 text-sm text-slate-500">Three makers. One very familiar thread.</p>
+   </div>
+
+   <ul className="mt-6 grid gap-3 sm:grid-cols-3">
+    {[
+     { number: "01", before: "Sai ", after: "", href: "https://www.linkedin.com/in/saipranav-m/" },
+     { number: "02", before: "", after: " V", href: "https://www.linkedin.com/in/pranav-vijay-524410329/" },
+     { number: "03", before: "", after: " Krishna", href: "https://www.linkedin.com/in/pranav-krishna-p/" },
+    ].map((maker) => (
+     <li key={maker.number} className="border border-slate-200 bg-white transition hover:border-indigo-300 hover:shadow-sm">
+      <a href={maker.href} target="_blank" rel="noopener noreferrer" className="group flex items-center gap-4 px-5 py-4">
+       <span className="font-mono text-xs text-slate-300">{maker.number}</span>
+       <span className="text-lg font-bold tracking-tight text-slate-800 group-hover:text-indigo-700">
+        {maker.before}<span className="text-indigo-600">Pranav</span>{maker.after}
+       </span>
+      </a>
+     </li>
+    ))}
+   </ul>
+   <p className="mt-4 text-xs text-slate-400">Apparently, Pranav was the common denominator all along.</p>
+  </section>
  </main>
  );
 }
