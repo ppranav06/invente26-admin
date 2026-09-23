@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { addTicketEvent, ApiError, getEvents, replaceTicketEvent } from "../lib/api";
-import { compatibleEventType } from "../lib/ticket";
+import { compatibleEventType, isTicketAccepted } from "../lib/ticket";
 import type { CatalogEvent, TicketEvent, TicketResponse } from "../lib/types";
 import { useAuth } from "../lib/authContext";
 import TicketLookup from "./ticket-lookup";
@@ -28,6 +28,7 @@ export default function ModifyEvents() {
  const [message, setMessage] = useState<string | null>(null);
 
  const canAssign = user?.role === "master_admin" || user?.role === "volunteer";
+ const ticketAccepted = data ? isTicketAccepted(data.ticket.status) : false;
 
  useEffect(() => {
  let cancelled = false;
@@ -58,7 +59,7 @@ export default function ModifyEvents() {
  const addOptions = useMemo(() => catalog.filter((event) => event.event_type.toUpperCase() === "TECH" && !assignedIds.has(event.event_id)), [assignedIds, catalog]);
 
  const handleSave = async (currentEvent: TicketEvent) => {
- if (!data) return;
+ if (!data || !ticketAccepted) return;
  const nextEventId = pending[currentEvent.event_id];
  if (!nextEventId || savingId) return;
 
@@ -88,7 +89,7 @@ export default function ModifyEvents() {
  };
 
  const handleAdd = async () => {
- if (!data || !newEventId || adding) return;
+ if (!data || !ticketAccepted || !newEventId || adding) return;
 
  setAdding(true);
  setMessage(null);
@@ -125,6 +126,7 @@ export default function ModifyEvents() {
 
   {message && <div className="mx-5 mt-5 border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-medium text-indigo-800 sm:mx-6" role="status">{message}</div>}
   {catalogError && <div className="mx-5 mt-5 border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 sm:mx-6" role="alert">{catalogError}</div>}
+  {data && !ticketAccepted && <div className="mx-5 mt-5 border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-medium text-slate-600 sm:mx-6" role="status">This ticket is not accepted. Event changes are unavailable until its status is Accepted.</div>}
 
   {!data && <div className="grid place-items-center px-6 py-24 text-center"><div><div className="mx-auto grid h-14 w-14 place-items-center bg-amber-50 text-2xl text-amber-600">↔</div><p className="mt-4 font-bold text-slate-700">No ticket loaded</p><p className="mt-1 text-sm text-slate-500">Scan a ticket to see its current event assignments.</p></div></div>}
   {data && (
@@ -136,7 +138,7 @@ export default function ModifyEvents() {
     const options = candidateEvents(data.ticket.ticket_type, event, catalog, assignedIds);
     const selected = pending[event.event_id] || "";
     return (
-     <article key={event.event_id} className=" border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
+     <article key={event.event_id} aria-disabled={!ticketAccepted} className={`border border-slate-200 p-4 sm:p-5 ${ticketAccepted ? "bg-slate-50/70" : "cursor-not-allowed bg-slate-100 opacity-60 grayscale"}`}>
      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
       <div className="min-w-0">
       <div className="flex flex-wrap items-center gap-2"><span className=" bg-white px-2.5 py-1 text-xs font-bold text-slate-500 shadow-sm">Event {event.position}</span>{event.attendance && <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">Attended · locked</span>}</div>
@@ -145,11 +147,11 @@ export default function ModifyEvents() {
       </div>
       {!event.attendance && canAssign && (
       <div className="flex min-w-0 flex-col gap-2 sm:flex-row lg:w-[28rem]">
-       <select value={selected} onChange={(change) => setPending((current) => ({ ...current, [event.event_id]: change.target.value }))} disabled={catalogLoading || savingId === event.event_id} className="min-w-0 flex-1 border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100">
+       <select value={selected} onChange={(change) => setPending((current) => ({ ...current, [event.event_id]: change.target.value }))} disabled={!ticketAccepted || catalogLoading || savingId === event.event_id} className="min-w-0 flex-1 border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-slate-100">
        <option value="">{catalogLoading ? "Loading events…" : options.length ? "Choose replacement" : "No compatible events"}</option>
        {options.map((option) => <option key={option.event_id} value={option.event_id}>{option.name} · {option.dept_name}</option>)}
        </select>
-       <button type="button" onClick={() => void handleSave(event)} disabled={!selected || savingId !== null} className=" bg-amber-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:bg-slate-300">{savingId === event.event_id ? "Saving…" : "Save"}</button>
+       <button type="button" onClick={() => void handleSave(event)} disabled={!ticketAccepted || !selected || savingId !== null} className=" bg-amber-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:bg-slate-300">{savingId === event.event_id ? "Saving…" : "Save"}</button>
       </div>
       )}
      </div>
@@ -157,7 +159,7 @@ export default function ModifyEvents() {
     );
     })}
     {canAssign && isTechPass && (
-     <section className="border border-indigo-200 bg-indigo-50/60 p-4 sm:p-5">
+     <section aria-disabled={!ticketAccepted} className={`border border-indigo-200 p-4 sm:p-5 ${ticketAccepted ? "bg-indigo-50/60" : "cursor-not-allowed bg-slate-100 opacity-60 grayscale"}`}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
        <div>
         <div className="flex flex-wrap items-center gap-2">
@@ -170,11 +172,11 @@ export default function ModifyEvents() {
        </div>
        {data.events.length < 4 && (
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row lg:w-[28rem]">
-         <select value={newEventId} onChange={(change) => setNewEventId(change.target.value)} disabled={catalogLoading || adding} className="min-w-0 flex-1 border border-indigo-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100">
+         <select value={newEventId} onChange={(change) => setNewEventId(change.target.value)} disabled={!ticketAccepted || catalogLoading || adding} className="min-w-0 flex-1 border border-indigo-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-slate-100">
           <option value="">{catalogLoading ? "Loading events…" : addOptions.length ? "Choose technical event" : "No unassigned technical events"}</option>
           {addOptions.map((option) => <option key={option.event_id} value={option.event_id}>{option.name} · {option.dept_name}</option>)}
          </select>
-         <button type="button" onClick={() => void handleAdd()} disabled={!newEventId || adding || catalogLoading} className="bg-indigo-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300">{adding ? "Adding…" : "Add event"}</button>
+         <button type="button" onClick={() => void handleAdd()} disabled={!ticketAccepted || !newEventId || adding || catalogLoading} className="bg-indigo-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300">{adding ? "Adding…" : "Add event"}</button>
         </div>
        )}
       </div>

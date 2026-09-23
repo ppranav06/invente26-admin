@@ -5,6 +5,10 @@ export function normalizeTicketId(raw: string) {
   return UUID_PATTERN.test(ticketId) ? ticketId.toLowerCase() : null;
 }
 
+export function isTicketAccepted(status: string) {
+  return status === "Accepted";
+}
+
 export function compatibleEventType(ticketType: string, currentEventType?: string | null) {
   switch (ticketType.toUpperCase()) {
     case "TECHPASS":
