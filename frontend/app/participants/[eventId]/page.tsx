@@ -12,6 +12,10 @@ import {
 } from "@/app/lib/api";
 import type { CatalogEvent } from "@/app/lib/types";
 
+type ParticipantsResponse = Awaited<ReturnType<typeof getParticipants>>;
+
+const CACHE_TTL_MS = 30_000;
+
 export default function ParticipantsPage({
  params,
 }: {
@@ -33,10 +37,16 @@ export default function ParticipantsPage({
  const [error, setError] = useState<string | null>(null);
  const [exporting, setExporting] = useState(false);
  const [event, setEvent] = useState<CatalogEvent | null>(null);
- const requestSequence = useRef(0);
- const lastRequestKey = useRef("");
+  const requestSequence = useRef(0);
+  const lastRequestKey = useRef("");
+  const cacheRef = useRef(
+    new Map<string, { data: ParticipantsResponse; expiresAt: number }>(),
+  );
+  const inflightRef = useRef(
+    new Map<string, Promise<ParticipantsResponse>>(),
+  );
 
- const applyFilters = () => {
+  const applyFilters = () => {
   const nextSearch = search.trim().slice(0, 100);
   const nextCollege = college.trim().slice(0, 100);
   setAppliedSearch(nextSearch.length >= 2 ? nextSearch : "");
@@ -50,6 +60,19 @@ export default function ParticipantsPage({
  if (lastRequestKey.current === requestKey) return;
  lastRequestKey.current = requestKey;
  const requestId = ++requestSequence.current;
+
+ const cached = cacheRef.current.get(requestKey);
+ if (cached && cached.expiresAt > Date.now()) {
+  if (requestSequence.current === requestId) {
+   setParticipants(cached.data.rows);
+   setTotal(cached.data.total);
+   setEvent(cached.data.event);
+   setError(null);
+   setLoading(false);
+  }
+  return;
+ }
+
  setLoading(true);
  setError(null);
  try {
@@ -58,8 +81,22 @@ export default function ParticipantsPage({
   if (attended) filters.attended = attended;
   if (appliedCollege) filters.college = appliedCollege;
   if (appliedSearch) filters.search = appliedSearch;
-  const data = await getParticipants(eventId, filters);
+
+  let promise = inflightRef.current.get(requestKey);
+  if (!promise) {
+   promise = getParticipants(eventId, filters);
+   inflightRef.current.set(requestKey, promise);
+   promise.finally(() => {
+    inflightRef.current.delete(requestKey);
+   });
+  }
+
+  const data = await promise;
   if (requestSequence.current !== requestId) return;
+  cacheRef.current.set(requestKey, {
+   data,
+   expiresAt: Date.now() + CACHE_TTL_MS,
+  });
   setParticipants(data.rows);
   setTotal(data.total);
   setEvent(data.event);
