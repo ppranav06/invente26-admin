@@ -197,6 +197,7 @@ export default function ParticipantsPage({
    <option value="NotVerified">Not Verified</option>
    <option value="Accepted">Accepted</option>
    <option value="Rejected">Rejected</option>
+   <option value="PendingPayment">PendingPayment</option>
    </select>
    <select
    value={attended}
