@@ -216,7 +216,7 @@ export default function AnalyticsPage() {
    {eventTypeSegments.length > 0 && (
     <div className="border border-slate-200 bg-white p-6">
     <h3 className="mb-4 text-sm font-bold text-slate-950">Registrations by Type</h3>
-    <div className="flex items-center gap-6">
+    <div className="flex flex-wrap items-center gap-4 sm:gap-6">
      <DonutChart
      segments={eventTypeSegments}
      centerValue={collegeData.total_registrations}
@@ -247,11 +247,11 @@ export default function AnalyticsPage() {
    {/* Attendance Overview - Ring */}
    <div className="border border-slate-200 bg-white p-6">
     <h3 className="mb-4 text-sm font-bold text-slate-950">Overall Attendance</h3>
-    <div className="flex items-center gap-6">
-    <AttendanceRing
+    <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+     <AttendanceRing
      attended={collegeData.total_attended}
      total={collegeData.total_registrations}
-    />
+     />
     <div className="space-y-3">
      <div>
      <p className="text-xs font-bold text-slate-400">Registered</p>

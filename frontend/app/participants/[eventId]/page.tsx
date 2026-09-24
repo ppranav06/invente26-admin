@@ -191,7 +191,7 @@ export default function ParticipantsPage({
     setStatus(e.target.value);
     setPage(1);
    }}
-   className=" border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+   className="w-full border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 sm:w-auto"
    >
    <option value="">All payment statuses</option>
    <option value="NotVerified">Not Verified</option>
@@ -206,7 +206,7 @@ export default function ParticipantsPage({
     setPage(1);
    }}
    aria-label="Filter by attendance"
-   className=" border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+   className="w-full border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 sm:w-auto"
    >
    <option value="">All attendance</option>
    <option value="true">Attended: Yes</option>
@@ -215,7 +215,7 @@ export default function ParticipantsPage({
    <button
     type="button"
     onClick={applyFilters}
-    className="bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700"
+    className="w-full bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700 sm:w-auto"
    >
     Search
    </button>
@@ -224,7 +224,7 @@ export default function ParticipantsPage({
     type="button"
     onClick={() => void handleExport()}
     disabled={exporting}
-    className="self-start bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+    className="w-full self-start bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 sm:w-auto"
    >
     {exporting ? "Exporting…" : "Export to Excel"}
    </button>
