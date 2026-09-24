@@ -128,6 +128,46 @@ test('participant filters combine name, email, phone, and college safely', async
   assert.ok(calls.every((call) => call.params.includes('%Ada%')));
 });
 
+test('attended filter applies only for explicit true/false', () => {
+  const yes = buildFilters({ attended: 'true' }, 2);
+  assert.equal(yes.clauses.length, 1);
+  assert.match(yes.clauses[0], /COALESCE\(te\.attendance, false\)/);
+  assert.deepEqual(yes.values, [true]);
+
+  const no = buildFilters({ attended: 'false' }, 2);
+  assert.match(no.clauses[0], /COALESCE\(te\.attendance, false\)/);
+  assert.deepEqual(no.values, [false]);
+
+  assert.equal(buildFilters({ attended: '' }, 2).clauses.length, 0);
+  assert.equal(buildFilters({ attended: 'yes' }, 2).clauses.length, 0);
+  assert.equal(buildFilters({}, 2).clauses.length, 0);
+});
+
+test('participant list binds attended alongside other filters', async () => {
+  const calls = [];
+  const db = {
+    query: async (sql, params) => {
+      calls.push({ sql, params });
+      if (sql.includes('COUNT(*)')) return { rows: [{ total: '2' }] };
+      return { rows: [{ name: 'Ada' }] };
+    },
+  };
+
+  const result = await getParticipants(db, eventOne, {
+    page: 1,
+    limit: 50,
+    attended: 'true',
+    status: 'Accepted',
+    search: 'Ada',
+  });
+
+  assert.equal(result.total, 2);
+  assert.equal(calls.length, 2);
+  assert.ok(calls.every((call) => call.params.includes(true)));
+  assert.ok(calls.every((call) => call.params.includes('Accepted')));
+  assert.ok(calls.every((call) => call.sql.includes('COALESCE(te.attendance, false)')));
+});
+
 function clientForAttendance(currentRow) {
   const calls = [];
   const row = { status: 'Accepted', ...currentRow };
@@ -210,7 +250,7 @@ test('attendance is rejected if payment status is not Accepted', async () => {
 
   await assert.rejects(
     markAttendance(db, ticketId, eventOne),
-    (error) => error.code === 'PAYMENT_NOT_ACCEPTED' && error.status === 400,
+    (error) => error.code === 'PAYMENT_NOT_ACCEPTED' && error.status === 422,
   );
 });
 

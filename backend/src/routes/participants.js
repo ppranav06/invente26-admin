@@ -38,7 +38,7 @@ function createParticipantsRouter({ db }) {
    * GET /events/:eventId/participants
    *
    * Paginated participant list.
-   * Query: ?page, ?limit (max 200), ?status, ?college, ?search
+   * Query: ?page, ?limit (max 200), ?status, ?college, ?search, ?attended
    */
   router.get(
     '/events/:eventId/participants',
@@ -48,11 +48,12 @@ function createParticipantsRouter({ db }) {
       const event = await resolveScope(req.adminUser, eventId);
 
       const data = await getParticipants(db, eventId, {
-        page:    req.query.page,
-        limit:   req.query.limit,
-        status:  req.query.status,
-        college: req.query.college,
-        search:  req.query.search,
+        page:     req.query.page,
+        limit:    req.query.limit,
+        status:   req.query.status,
+        college:  req.query.college,
+        search:   req.query.search,
+        attended: req.query.attended,
       });
 
       return res.status(200).json({
@@ -74,7 +75,7 @@ function createParticipantsRouter({ db }) {
    * GET /events/:eventId/participants/export
    *
    * Streams an Excel (.xlsx) file with all matching participants.
-   * Supports the same ?status and ?college filters.
+   * Supports the same status, college, search, and attended filters.
    */
   router.get(
     '/events/:eventId/participants/export',
@@ -83,9 +84,10 @@ function createParticipantsRouter({ db }) {
       const eventId = parseUuid(req.params.eventId, 'eventId');
       const event   = await resolveScope(req.adminUser, eventId);
       const rows    = await getAllParticipants(db, eventId, {
-        status:  req.query.status,
-        college: req.query.college,
-        search:  req.query.search,
+        status:   req.query.status,
+        college:  req.query.college,
+        search:   req.query.search,
+        attended: req.query.attended,
       });
 
       const workbook = new ExcelJS.Workbook();

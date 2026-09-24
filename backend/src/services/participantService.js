@@ -25,7 +25,7 @@ const PARTICIPANT_BASE_SELECT = `
 /**
  * Build WHERE clause additions + parameter list from optional filter args.
  *
- * @param {{ status?: string, college?: string, search?: string }} filters
+ * @param {{ status?: string, college?: string, search?: string, attended?: string }} filters
  * @param {number} startIdx - next $N index
  */
 function buildFilters(filters, startIdx) {
@@ -46,6 +46,10 @@ function buildFilters(filters, startIdx) {
     clauses.push(`tp.status = $${idx++}`);
     values.push(filters.status);
   }
+  if (filters.attended === 'true' || filters.attended === 'false') {
+    clauses.push(`COALESCE(te.attendance, false) = $${idx++}`);
+    values.push(filters.attended === 'true');
+  }
   if (college) {
     clauses.push(`u.college_name ILIKE $${idx++}`);
     values.push(`%${college}%`);
@@ -64,7 +68,7 @@ function buildFilters(filters, startIdx) {
  *
  * @param {object} db
  * @param {string} eventId
- * @param {{ page?: number, limit?: number, status?: string, college?: string, search?: string }} options
+ * @param {{ page?: number, limit?: number, status?: string, college?: string, search?: string, attended?: string }} options
  */
 async function getParticipants(db, eventId, options = {}) {
   const page  = Math.max(1, Number(options.page)  || 1);
@@ -106,7 +110,7 @@ async function getParticipants(db, eventId, options = {}) {
  *
  * @param {object} db
  * @param {string} eventId
- * @param {{ status?: string, college?: string, search?: string }} filters
+ * @param {{ status?: string, college?: string, search?: string, attended?: string }} filters
  */
 async function getAllParticipants(db, eventId, filters = {}) {
   const { clauses, values } = buildFilters(filters, 2);
