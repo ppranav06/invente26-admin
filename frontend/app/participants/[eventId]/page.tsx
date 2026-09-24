@@ -202,9 +202,10 @@ export default function ParticipantsPage({
     <table className="w-full text-left text-sm">
     <thead>
      <tr className="border-b border-slate-100 text-xs font-bold uppercase tracking-wider text-slate-500">
-     <th className="px-5 py-3">Name</th>
-     <th className="px-5 py-3">Email</th>
-     <th className="px-5 py-3">College</th>
+      <th className="px-5 py-3">Name</th>
+      <th className="px-5 py-3">Email</th>
+      <th className="px-5 py-3">Phone</th>
+      <th className="px-5 py-3">College</th>
      <th className="px-5 py-3">Year</th>
      <th className="px-5 py-3">Ticket Type</th>
      <th className="px-5 py-3">Payment</th>
@@ -214,7 +215,7 @@ export default function ParticipantsPage({
     <tbody>
      {participants.length === 0 && (
      <tr>
-      <td colSpan={7} className="px-5 py-12 text-center text-sm text-slate-500">
+      <td colSpan={8} className="px-5 py-12 text-center text-sm text-slate-500">
       No participants match the current filters.
       </td>
      </tr>
@@ -223,6 +224,7 @@ export default function ParticipantsPage({
      <tr key={`${p.ticket_id}-${i}`} className="border-b border-slate-50 last:border-0">
       <td className="px-5 py-3 font-medium text-slate-950">{p.name}</td>
       <td className="px-5 py-3 text-slate-600">{p.email}</td>
+      <td className="px-5 py-3 text-slate-600">{p.phone || "—"}</td>
       <td className="px-5 py-3 text-slate-600">{p.college_name || "—"}</td>
       <td className="px-5 py-3 text-slate-600">{p.year_of_study ?? "—"}</td>
       <td className="px-5 py-3">
