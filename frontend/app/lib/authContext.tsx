@@ -95,23 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = useCallback(
    async (email: string, password: string) => {
-    // Try master admin local login first
-    try {
-     const data = await apiLoginLocal(email, password);
-     setTokens(data.access_token, data.refresh_token);
-     scheduleRefresh(data.access_token);
-     setUser(data.user);
-     return;
-    } catch (localErr: unknown) {
-     // If local login returned 400 (MISSING_CREDENTIALS), it means the
-     // backend doesn't support local login for this user — try Firebase.
-     // Any other error (wrong password, etc.) should not fall through.
-     if (!(localErr instanceof ApiError && localErr.status === 400)) {
-      throw localErr;
-     }
-    }
-
-    // Fall back to Firebase authentication
+    // Firebase authentication
     const credential = await signInWithEmailAndPassword(auth, email, password);
     const idToken = await credential.user.getIdToken();
     const data = await apiLogin(idToken);
