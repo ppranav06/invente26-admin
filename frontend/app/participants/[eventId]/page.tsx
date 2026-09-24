@@ -23,8 +23,9 @@ export default function ParticipantsPage({
  const [total, setTotal] = useState(0);
  const [page, setPage] = useState(1);
  const [limit] = useState(50);
- const [status, setStatus] = useState("");
- const [college, setCollege] = useState("");
+  const [status, setStatus] = useState("");
+  const [attended, setAttended] = useState("");
+  const [college, setCollege] = useState("");
  const [search, setSearch] = useState("");
  const [appliedSearch, setAppliedSearch] = useState("");
  const [appliedCollege, setAppliedCollege] = useState("");
@@ -45,15 +46,16 @@ export default function ParticipantsPage({
 
  const loadParticipants = useCallback(async () => {
  if (!user) return;
- const requestKey = [eventId, page, limit, status, appliedCollege, appliedSearch].join("\u0000");
+ const requestKey = [eventId, page, limit, status, attended, appliedCollege, appliedSearch].join("\u0000");
  if (lastRequestKey.current === requestKey) return;
  lastRequestKey.current = requestKey;
  const requestId = ++requestSequence.current;
  setLoading(true);
  setError(null);
  try {
-  const filters: { page: number; limit: number; status?: string; college?: string; search?: string } = { page, limit };
+  const filters: { page: number; limit: number; status?: string; college?: string; search?: string; attended?: string } = { page, limit };
   if (status) filters.status = status;
+  if (attended) filters.attended = attended;
   if (appliedCollege) filters.college = appliedCollege;
   if (appliedSearch) filters.search = appliedSearch;
   const data = await getParticipants(eventId, filters);
@@ -68,7 +70,7 @@ export default function ParticipantsPage({
  } finally {
   if (requestSequence.current === requestId) setLoading(false);
  }
- }, [eventId, page, limit, status, appliedCollege, appliedSearch, user]);
+  }, [eventId, page, limit, status, attended, appliedCollege, appliedSearch, user]);
 
  useEffect(() => {
  const timer = setTimeout(() => {
@@ -82,11 +84,12 @@ export default function ParticipantsPage({
  const handleExport = async () => {
   setExporting(true);
   try {
-   const blob = await exportParticipants(eventId, {
-    status: status || undefined,
-    college: appliedCollege || undefined,
-    search: appliedSearch || undefined,
-   });
+    const blob = await exportParticipants(eventId, {
+     status: status || undefined,
+     college: appliedCollege || undefined,
+     search: appliedSearch || undefined,
+     attended: attended || undefined,
+    });
    const url = URL.createObjectURL(blob);
    const a = document.createElement("a");
    a.href = url;
@@ -157,6 +160,19 @@ export default function ParticipantsPage({
    <option value="NotVerified">Not Verified</option>
    <option value="Accepted">Accepted</option>
    <option value="Rejected">Rejected</option>
+   </select>
+   <select
+   value={attended}
+   onChange={(e) => {
+    setAttended(e.target.value);
+    setPage(1);
+   }}
+   aria-label="Filter by attendance"
+   className=" border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+   >
+   <option value="">All attendance</option>
+   <option value="true">Attended: Yes</option>
+   <option value="false">Attended: No</option>
    </select>
    <button
     type="button"
